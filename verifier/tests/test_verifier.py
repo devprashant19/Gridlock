@@ -8,7 +8,16 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from verifier.common.challenge import gen, hash_row, MerkleTree
-from verifier.api.server import app
+from verifier.api.server import app, sessions, verdicts
+
+
+@pytest.fixture(autouse=True)
+def clean_state():
+    sessions.clear()
+    verdicts.clear()
+    yield
+    sessions.clear()
+    verdicts.clear()
 
 
 def test_reproducible_matrix_generation():
@@ -217,3 +226,68 @@ def test_eip712_signature_recovery():
     expected_address = Account.from_key(VERIFIER_SIGNER_PK).address
 
     assert recovered_address.lower() == expected_address.lower(), "Signature must recover to verifier signer address"
+
+
+def test_cre_don_endpoint_and_idempotency():
+    client = TestClient(app)
+    delivery_id = 104
+
+    # 1. Challenge, commit, reveal
+    res = client.post("/challenge", json={"deliveryId": delivery_id, "gpuClass": "T4", "n": 64})
+    ch_data = res.json()
+    A, B = gen(ch_data["seed"], 64, 3)
+    C = (A.astype(np.int64) @ B.astype(np.int64)).astype(np.int64)
+    tree = MerkleTree([hash_row(C[r]) for r in range(64)])
+    root_hex = "0x" + tree.root.hex()
+
+    commit_res = client.post("/commit", json={
+        "deliveryId": delivery_id,
+        "root": root_hex,
+        "tflops": 8.1,
+        "sm": 40,
+        "device": "Tesla T4",
+        "h2dGbps": 12.0,
+        "d2hGbps": 11.5,
+    })
+    assert commit_res.status_code == 200
+    sample_indices = commit_res.json()["sampleIndices"]
+
+    reveal_payload = {
+        "deliveryId": delivery_id,
+        "rows": [{"index": i, "data": "0x" + C[i].tobytes().hex()} for i in sample_indices],
+        "proofs": [tree.get_proof(i) for i in sample_indices],
+    }
+    res1 = client.post("/reveal", json=reveal_payload)
+    assert res1.status_code == 200
+    data1 = res1.json()
+
+    # 2. Idempotency test: calling reveal again returns cached result
+    res2 = client.post("/reveal", json=reveal_payload)
+    assert res2.status_code == 200
+    data2 = res2.json()
+    assert data1["signature"] == data2["signature"]
+    assert data1["verdict"] == data2["verdict"]
+
+    # 3. CRE DON Endpoint test
+    cre_res = client.get(f"/cre/verdict/{delivery_id}")
+    assert cre_res.status_code == 200
+    cre_data = cre_res.json()
+    assert cre_data["isReady"] is True
+    assert cre_data["verdict"] == 1
+    assert "reportBytes" in cre_data
+    assert cre_data["reportBytes"].startswith("0x")
+
+
+def test_telemetry_and_benchmark_probe():
+    from verifier.common.benchmark import probe_hardware_telemetry, measure_pcie_bandwidth, measure_fp16_tflops
+
+    telemetry = probe_hardware_telemetry()
+    assert "device" in telemetry
+    assert "smCount" in telemetry
+    assert telemetry["smCount"] > 0
+
+    h2d, d2h = measure_pcie_bandwidth()
+    assert h2d > 0 and d2h > 0
+
+    tflops = measure_fp16_tflops()
+    assert tflops > 0

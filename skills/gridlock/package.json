@@ -8,7 +8,8 @@
     "quote": "node --experimental-strip-types cli/quote.ts",
     "buy": "node --experimental-strip-types cli/buy.ts",
     "redeem": "node --experimental-strip-types cli/redeem.ts",
-    "verify": "node --experimental-strip-types cli/verify.ts"
+    "verify": "node --experimental-strip-types cli/verify.ts",
+    "workflow": "node --experimental-strip-types cli/workflow.ts"
   },
   "dependencies": {
     "ethers": "^5.7.2",
