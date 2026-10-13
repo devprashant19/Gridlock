@@ -26,3 +26,31 @@ indexer.onEvent(
     }
   }
 );
+
+// SeriesCreated handler
+indexer.onEvent(
+  { contract: "SeriesFactory", event: "SeriesCreated" },
+  async ({ event, context }) => {
+    const seriesId = event.params.seriesId.toString();
+    const existing = await context.Series.get(seriesId);
+    if (!existing) {
+      context.Series.set({
+        id: seriesId,
+        symbol: event.params.symbol,
+        gpuClass: event.params.gpuClass,
+        token: event.params.token.toLowerCase(),
+        market: undefined,
+        lastPrice: undefined,
+        openHours: 0n,
+      });
+    } else {
+      context.Series.set({
+        ...existing,
+        symbol: event.params.symbol,
+        gpuClass: event.params.gpuClass,
+        token: event.params.token.toLowerCase(),
+      });
+    }
+  }
+);
+
