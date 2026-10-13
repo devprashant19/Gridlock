@@ -1,0 +1,20 @@
+{
+  "name": "gridlock-bots",
+  "version": "1.0.0",
+  "description": "Gridlock Kuru market deployer and ladder seeding bots",
+  "main": "deploy-markets.ts",
+  "scripts": {
+    "deploy-markets": "ts-node deploy-markets.ts",
+    "seed-ladder": "ts-node seed-ladder.ts"
+  },
+  "dependencies": {
+    "@kuru-labs/kuru-sdk": "^0.1.0",
+    "dotenv": "^16.4.5",
+    "ethers": "^5.7.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.0"
+  }
+}
