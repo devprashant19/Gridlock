@@ -1,5 +1,10 @@
 import * as path from "path";
 import * as fs from "fs";
+import { fileURLToPath } from "url";
+import { encodeRedeemCalldata } from "./calldata.ts";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // gridlock redeem --series gT4-NOW --hours 1
 async function main() {
@@ -16,23 +21,25 @@ async function main() {
     process.exit(1);
   }
 
-  // Generates dummy/agent buyerEncPubKey bytes32
-  const dummyPubKey = "0x" + "aa".repeat(32);
+  // Generates or reads buyer X25519 public key (bytes32 hex)
+  const buyerEncPubKey = process.argv[4] || "0x" + "aa".repeat(32);
+  const calldata = encodeRedeemCalldata(seriesInfo.seriesId, hours, buyerEncPubKey);
 
   const tx = {
     to: deployments.contracts.DeliveryEscrow,
     value: "0x0",
-    data: "0x...", // Encoded DeliveryEscrow.redeem(seriesId, hours, buyerEncPubKey)
+    data: calldata,
     meta: {
       action: "REDEEM_GPU_HOURS",
       series: seriesSymbol,
       seriesId: seriesInfo.seriesId,
       hours: hours.toString(),
-      buyerEncPubKey: dummyPubKey,
+      buyerEncPubKey: buyerEncPubKey,
     },
   };
 
-  console.log("\n[MetaMask Transaction Proposal - Pass to 'mm']");
+  console.log(`[Gridlock Skill] Redeeming ${hours} hours of ${seriesSymbol}...`);
+  console.log("\n[MetaMask Transaction Proposal - Send with 'mm tx send']");
   console.log(JSON.stringify(tx, null, 2));
 }
 
