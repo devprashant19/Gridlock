@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { bytesToHex, parseEventLogs } from "viem";
 import { deliveryEscrowAbi } from "@/lib/abis";
-import { CONTRACTS, SERIES, seriesBySymbol } from "@/lib/config";
+import { CONTRACTS, IS_MOCK, SERIES, seriesBySymbol } from "@/lib/config";
 import { readBalances, scanDeliveries } from "@/lib/data";
 import { fmtDate, fmtNum, hoursFromWei } from "@/lib/format";
 import { useNow, usePoll, useTx } from "@/lib/hooks";
@@ -40,7 +40,7 @@ export default function HoursPage() {
     async () =>
       session
         ? (await scanDeliveries())
-            .filter((d) => d.buyer.toLowerCase() === session.address.toLowerCase())
+            .filter((d) => IS_MOCK || d.buyer.toLowerCase() === session.address.toLowerCase())
             .reverse()
         : [],
     [session?.address],

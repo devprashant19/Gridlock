@@ -16,7 +16,7 @@ const isActive = (path: string, n: { href: string; match?: string }) => {
 const NAV = [
   { href: "/", label: "FORWARD MARKET" },
   { href: "/market/gT4-NOW", match: "/market", label: "TRADE (KURU)" },
-  { href: "/hours", label: "DELIVERY QUEUE" },
+  { href: "/hours", label: "PORTFOLIO (/hours)" },
   { href: "/provider", label: "PROVIDE & MINT" },
   { href: "/providers", label: "REPUTATION WALL" },
 ];
