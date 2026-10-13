@@ -24,7 +24,7 @@ export async function runIndexerHealthCheck(rpcUrl: string = "https://testnet-rp
     });
 
     if (res.ok) {
-      const data = await res.json();
+      const data = (await res.json()) as any;
       rpcBlockNumber = parseInt(data.result, 16);
       rpcOk = true;
       diagnostics.push(`Connected to Monad Testnet RPC at block ${rpcBlockNumber}`);
