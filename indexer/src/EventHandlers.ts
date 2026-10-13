@@ -134,5 +134,21 @@ indexer.onEvent(
   }
 );
 
+// Provisioned handler
+indexer.onEvent(
+  { contract: "DeliveryEscrow", event: "Provisioned" },
+  async ({ event, context }) => {
+    const deliveryId = event.params.deliveryId.toString();
+    const delivery = await context.Delivery.get(deliveryId);
+    if (delivery) {
+      context.Delivery.set({
+        ...delivery,
+        status: "PROVISIONED",
+      });
+    }
+  }
+);
+
+
 
 
