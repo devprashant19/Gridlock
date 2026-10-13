@@ -77,13 +77,20 @@ export function useTx() {
       const id = toast.push({ kind: "pending", text: `${label}…` });
       setPending(true);
       try {
+        if (IS_MOCK) {
+          await new Promise((r) => setTimeout(r, 400));
+          const mockHash: Hash = `0x${Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join("")}` as Hash;
+          toast.update(id, { kind: "success", text: `${label} confirmed (400ms block fill)`, hash: mockHash });
+          bumpTx();
+          return { transactionHash: mockHash, status: "success", logs: [] } as any;
+        }
         const s = guard();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const hash: Hash = await s.walletClient.writeContract({ ...(req as any), account: s.account, chain: monadTestnet });
         toast.update(id, { text: `${label}: confirming…`, hash });
         const receipt = await publicClient.waitForTransactionReceipt({ hash });
         if (receipt.status !== "success") throw new Error(`${label} reverted`);
-        toast.update(id, { kind: "success", text: `${label} confirmed` });
+        toast.update(id, { kind: "success", text: `${label} confirmed (400ms block fill)`, hash });
         bumpTx();
         return receipt;
       } catch (e) {
@@ -102,8 +109,15 @@ export function useTx() {
       const id = toast.push({ kind: "pending", text: `${label}…` });
       setPending(true);
       try {
+        if (IS_MOCK) {
+          await new Promise((r) => setTimeout(r, 400));
+          const mockHash = `0x${Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join("")}`;
+          toast.update(id, { kind: "success", text: `${label} confirmed (400ms block fill)`, hash: mockHash });
+          bumpTx();
+          return { transactionHash: mockHash } as any;
+        }
         const r = await fn(guard());
-        toast.update(id, { kind: "success", text: `${label} confirmed`, hash: r ? r.transactionHash : undefined });
+        toast.update(id, { kind: "success", text: `${label} confirmed (400ms block fill)`, hash: r ? r.transactionHash : undefined });
         bumpTx();
         return r;
       } catch (e) {

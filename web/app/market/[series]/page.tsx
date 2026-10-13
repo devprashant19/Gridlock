@@ -345,6 +345,12 @@ function TradeForm({
     }
   };
 
+  const setHoursQuote = (hrs: number) => {
+    const ask = book.asks[0]?.[0] ?? 0.355;
+    const val = (hrs * ask).toFixed(2);
+    setQuote(val);
+  };
+
   return (
     <div className="space-y-4">
       {/* Side Selector Tabs */}
@@ -402,18 +408,36 @@ function TradeForm({
             </div>
           </Field>
 
-          {/* Quick Percentage Buttons */}
-          <div className="grid grid-cols-4 gap-1.5">
-            {[0.25, 0.5, 0.75, 1.0].map((pct) => (
-              <button
-                key={pct}
-                type="button"
-                onClick={() => setPercentQuote(pct)}
-                className="py-1.5 bg-white hover:bg-neo-yellow border-2 border-black text-xs font-mono font-black text-black shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] transition-transform"
-              >
-                {pct * 100}%
-              </button>
-            ))}
+          {/* Quick Presets: Hours & Wallet Percentages */}
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center text-[10px] font-mono font-black uppercase text-black/60">
+              <span>Quick Presets:</span>
+              <span>Compute Hours</span>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              {[1, 5, 10].map((hrs) => (
+                <button
+                  key={hrs}
+                  type="button"
+                  onClick={() => setHoursQuote(hrs)}
+                  className="py-1.5 bg-white hover:bg-neo-yellow border-2 border-black text-xs font-mono font-black text-black shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] transition-transform"
+                >
+                  {hrs} {hrs === 1 ? "Hour" : "Hours"}
+                </button>
+              ))}
+            </div>
+            <div className="grid grid-cols-4 gap-1.5 pt-0.5">
+              {[0.25, 0.5, 0.75, 1.0].map((pct) => (
+                <button
+                  key={pct}
+                  type="button"
+                  onClick={() => setPercentQuote(pct)}
+                  className="py-1 bg-white/70 hover:bg-neo-cream border border-black text-[11px] font-mono font-bold text-black shadow-[1px_1px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] transition-transform"
+                >
+                  {pct * 100}%
+                </button>
+              ))}
+            </div>
           </div>
 
           <Field label="Max Slippage Limit (%)" hint={`${slippage}% max price drift`}>
@@ -457,7 +481,7 @@ function TradeForm({
             loading={pending}
             disabled={!(Number(quote) > 0) || est.hours <= 0}
           >
-            ⚡ BUY {symbol} FORWARDS
+            ⚡ 1-CLICK MARKET BUY ({symbol})
           </Button>
           <p className="text-[11px] text-black/60 font-mono font-medium text-center">
             Signed by Mera Passkey session · Monad 400ms Sub-Second Fill
