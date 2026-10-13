@@ -263,8 +263,8 @@ contract DeliveryEscrow {
 
         if (verdict == 1) { // PASS: 100% to provider
             toProvider = d.bondAmount;
-        } else if (verdict == 2) { // DEGRADED: 30% provider, 70% buyer
-            toProvider = (d.bondAmount * 30) / 100;
+        } else if (verdict == 2) { // DEGRADED: 70% provider, 30% buyer
+            toProvider = (d.bondAmount * 70) / 100;
             toBuyer = d.bondAmount - toProvider;
         } else if (verdict == 3) { // FAIL: 100% to buyer
             toBuyer = d.bondAmount;
