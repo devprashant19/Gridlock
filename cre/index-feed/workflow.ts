@@ -5,7 +5,10 @@ import {
   encodeIndexReport,
 } from "../common/encoding.ts";
 import { calculateMedian } from "../common/consensus.ts";
+import { filterExtremeAnomalies, filterOutliersIQR } from "../common/outliers.ts";
 import { Logger } from "../common/logger.ts";
+import { fetchWithFailover } from "./sources.ts";
+import { evaluatePublicationThreshold, type ThresholdDecision } from "./threshold.ts";
 import type { OrnnApiResponse, IndexPrint } from "../common/types.ts";
 
 const logger = new Logger("index-feed");
@@ -23,6 +26,14 @@ export interface WorkflowConfig {
   ornnApiBase?: string;
   donNodes?: number;
   skipFreshnessCheck?: boolean;
+  deviationThresholdPercent?: number; // default 1.0%
+  heartbeatSec?: number; // default 3600s
+  lastPrints?: Record<string, { priceE8: bigint; dayKey: bigint }>;
+}
+
+export interface EnhancedIndexPrint extends IndexPrint {
+  source: string;
+  thresholdDecision: ThresholdDecision;
 }
 
 /**
@@ -100,7 +111,6 @@ export function extractLatestRecord(
 
   if (!skipFreshness) {
     const now = Date.now();
-    // Allow for future prints within 1 day (clock drift) or past up to max staleness
     if (latestTime < now - maxStalenessMs) {
       logger.warn(`Stale index print detected for ${apiResponse.gpu_type}`, {
         latestTimestamp: latest.timestamp,
@@ -113,15 +123,22 @@ export function extractLatestRecord(
 }
 
 /**
- * Simulates DON multi-node observation and median consensus aggregation
+ * Robust DON multi-node observation aggregation:
+ * Discards extreme anomalies, applies IQR filtering, and computes median.
  */
-export function aggregateDonObservations(
-  observations: number[]
-): number {
+export function aggregateDonObservations(observations: number[]): number {
   if (observations.length === 0) {
     throw new Error("No DON observations to aggregate");
   }
-  return calculateMedian(observations);
+
+  // Step 1: Discard extreme adversarial spikes
+  const cleanObservations = filterExtremeAnomalies(observations, 0.6);
+
+  // Step 2: Filter IQR statistical outliers if sufficient samples
+  const robustObservations = filterOutliersIQR(cleanObservations);
+
+  // Step 3: Compute median
+  return calculateMedian(robustObservations);
 }
 
 /**
@@ -130,37 +147,59 @@ export function aggregateDonObservations(
 export async function handleIndexFeed(
   config: WorkflowConfig = {},
   fetchFn: typeof fetch = fetch
-): Promise<IndexPrint[]> {
+): Promise<EnhancedIndexPrint[]> {
   const apiBase = config.ornnApiBase || DEFAULT_ORNN_BASE;
   const donNodes = config.donNodes || 3;
-  const prints: IndexPrint[] = [];
+  const prints: EnhancedIndexPrint[] = [];
 
   logger.info("Executing Chainlink CRE index-feed workflow", {
     symbols: APPROVED_SYMBOLS,
     donNodes,
+    deviationThreshold: `${config.deviationThresholdPercent ?? 1.0}%`,
+    heartbeat: `${config.heartbeatSec ?? 3600}s`,
   });
 
   for (const symbol of APPROVED_SYMBOLS) {
     try {
-      // Step 1: DON HTTP Capability simulation (each node queries Ornn endpoint)
       const nodeObservations: number[] = [];
       let latestRecordTimestamp = "";
+      let sourceUsed = "ORNN_API";
 
+      // DON Multi-Node HTTP capability with failover
       for (let n = 0; n < donNodes; n++) {
-        const history = await fetchIndexHistory(symbol, apiBase, fetchFn);
-        const latest = extractLatestRecord(history, MAX_STALENESS_MS, config.skipFreshnessCheck);
+        const fetchResult = await fetchWithFailover(symbol, () =>
+          fetchIndexHistory(symbol, apiBase, fetchFn)
+        );
+        sourceUsed = fetchResult.source;
+
+        const latest = extractLatestRecord(
+          fetchResult.response,
+          MAX_STALENESS_MS,
+          config.skipFreshnessCheck
+        );
         nodeObservations.push(latest.index_value);
         latestRecordTimestamp = latest.timestamp;
       }
 
-      // Step 2: Consensus median aggregation
+      // Consensus median aggregation with outlier protection
       const consensusValue = aggregateDonObservations(nodeObservations);
 
-      // Step 3: Encoding for onchain IndexOracle
+      // Encoding
       const gpuClass = computeGpuClassHash(symbol);
       const dayKey = computeDayKey(latestRecordTimestamp);
       const priceE8 = computePriceE8(consensusValue);
       const encodedReport = encodeIndexReport(gpuClass, dayKey, priceE8);
+
+      // Evaluate economic publication threshold (deviation vs heartbeat)
+      const lastPrint = config.lastPrints?.[symbol];
+      const thresholdDecision = evaluatePublicationThreshold(
+        priceE8,
+        lastPrint?.priceE8 ?? 0n,
+        dayKey,
+        lastPrint?.dayKey ?? 0n,
+        config.deviationThresholdPercent ?? 1.0,
+        config.heartbeatSec ?? 3600
+      );
 
       logger.info(`Consensus reached for ${symbol}`, {
         symbol,
@@ -168,6 +207,9 @@ export async function handleIndexFeed(
         consensusValue,
         priceE8: priceE8.toString(),
         dayKey: dayKey.toString(),
+        source: sourceUsed,
+        decision: thresholdDecision.reason,
+        shouldPublish: thresholdDecision.shouldPublish,
       });
 
       prints.push({
@@ -178,6 +220,8 @@ export async function handleIndexFeed(
         rawIndexValue: consensusValue,
         timestamp: latestRecordTimestamp,
         encodedReport,
+        source: sourceUsed,
+        thresholdDecision,
       });
     } catch (err: any) {
       logger.error(`Failed to process symbol ${symbol}`, { error: err.message });
