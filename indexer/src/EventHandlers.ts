@@ -149,6 +149,105 @@ indexer.onEvent(
   }
 );
 
+// Settled handler
+indexer.onEvent(
+  { contract: "DeliveryEscrow", event: "Settled" },
+  async ({ event, context }) => {
+    const deliveryId = event.params.deliveryId.toString();
+    const verdict = Number(event.params.verdict);
+    const tflopsE2 = Number(event.params.tflopsE2);
+    const toBuyer = event.params.toBuyer;
+    const toProvider = event.params.toProvider;
+
+    const delivery = await context.Delivery.get(deliveryId);
+    if (delivery) {
+      context.Delivery.set({
+        ...delivery,
+        status: "SETTLED",
+        verdict: verdict,
+        tflopsE2: tflopsE2,
+        toBuyer: toBuyer,
+        toProvider: toProvider,
+      });
+
+      // Update provider stats
+      const provider = await context.Provider.get(delivery.provider_id);
+      if (provider) {
+        let passes = provider.passes;
+        let degraded = provider.degraded;
+        let fails = provider.fails;
+        let hoursDelivered = provider.hoursDelivered;
+        let slashedTotal = provider.slashedTotal;
+
+        if (verdict === 1) {
+          passes += 1;
+          hoursDelivered += delivery.hours;
+        } else if (verdict === 2) {
+          degraded += 1;
+          hoursDelivered += delivery.hours;
+          slashedTotal += toBuyer;
+        } else if (verdict === 3) {
+          fails += 1;
+          slashedTotal += toBuyer;
+        }
+
+        context.Provider.set({
+          ...provider,
+          passes,
+          degraded,
+          fails,
+          hoursDelivered,
+          slashedTotal,
+        });
+      }
+    }
+  }
+);
+
+// TimeoutClaimed handler
+indexer.onEvent(
+  { contract: "DeliveryEscrow", event: "TimeoutClaimed" },
+  async ({ event, context }) => {
+    const deliveryId = event.params.deliveryId.toString();
+    const toBuyer = event.params.toBuyer;
+    const toProvider = event.params.toProvider;
+
+    const delivery = await context.Delivery.get(deliveryId);
+    if (delivery) {
+      context.Delivery.set({
+        ...delivery,
+        status: "TIMEOUT",
+        toBuyer: toBuyer,
+        toProvider: toProvider,
+      });
+
+      const provider = await context.Provider.get(delivery.provider_id);
+      if (provider) {
+        context.Provider.set({
+          ...provider,
+          timeouts: provider.timeouts + 1,
+          slashedTotal: provider.slashedTotal + toBuyer,
+        });
+      }
+    }
+  }
+);
+
+// PrintPublished handler
+indexer.onEvent(
+  { contract: "IndexOracle", event: "PrintPublished" },
+  async ({ event, context }) => {
+    const id = `${event.params.gpuClass}-${event.params.dayKey.toString()}`;
+    context.IndexPrint.set({
+      id: id,
+      gpuClass: event.params.gpuClass,
+      dayKey: event.params.dayKey,
+      priceE8: BigInt(event.params.priceE8),
+    });
+  }
+);
+
+
 
 
 
