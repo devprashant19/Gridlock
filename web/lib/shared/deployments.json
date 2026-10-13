@@ -1,0 +1,50 @@
+{
+  "chainId": 10143,
+  "network": "monad-testnet",
+  "deployBlock": 1234567,
+  "contracts": {
+    "GridUSD": "0x1111111111111111111111111111111111111111",
+    "IndexOracle": "0x2222222222222222222222222222222222222222",
+    "SeriesFactory": "0x3333333333333333333333333333333333333333",
+    "DeliveryEscrow": "0x4444444444444444444444444444444444444444"
+  },
+  "external": {
+    "kuruRouter": "0x7EFbE105Ca7415dE98F96622173458ac1c054630",
+    "verifierSigner": "0x5555555555555555555555555555555555555555",
+    "creForwarder": "0x6666666666666666666666666666666666666666"
+  },
+  "series": {
+    "gT4-NOW": {
+      "seriesId": 1,
+      "gpuClass": "0x21b2fae6f47053e1ebec92f3900223fa8c9ccf060714b7e1c8ce8b10efd867c0",
+      "token": "0x7777777777777777777777777777777777777777",
+      "kuruMarket": "0x8888888888888888888888888888888888888888",
+      "windowStart": 1728864000,
+      "windowEnd": 1729468800
+    },
+    "gH100-W43": {
+      "seriesId": 2,
+      "gpuClass": "0x60956bca9283f6f9cbe0d3ff7174e9b72ecda0ffbf96f3cf0f2bf29a65721118",
+      "token": "0x9999999999999999999999999999999999999999",
+      "kuruMarket": "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "windowStart": 1729468800,
+      "windowEnd": 1730073600
+    },
+    "gH100-W44": {
+      "seriesId": 3,
+      "gpuClass": "0x60956bca9283f6f9cbe0d3ff7174e9b72ecda0ffbf96f3cf0f2bf29a65721118",
+      "token": "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+      "kuruMarket": "0xCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+      "windowStart": 1730073600,
+      "windowEnd": 1730678400
+    },
+    "gA100-W43": {
+      "seriesId": 4,
+      "gpuClass": "0x370ce5f4b2cf3a09e0fa9560f443b3ee3ee486d30bcf9e78297b819f727c62ee",
+      "token": "0xDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+      "kuruMarket": "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE",
+      "windowStart": 1729468800,
+      "windowEnd": 1730073600
+    }
+  }
+}
