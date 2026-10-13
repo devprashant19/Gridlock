@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { CHAIN_ID, SESSION_CAP_GUSD, addressUrl } from "@/lib/config";
@@ -15,11 +14,11 @@ const isActive = (path: string, n: { href: string; match?: string }) => {
 };
 
 const NAV = [
-  { href: "/", label: "FORWARD CURVE", icon: "📈" },
-  { href: "/market/gT4-NOW", match: "/market", label: "TRADE (KURU)", icon: "⚡" },
-  { href: "/hours", label: "MY DELIVERIES", icon: "📦" },
-  { href: "/provider", label: "PROVIDE & MINT", icon: "🖥️" },
-  { href: "/providers", label: "REPUTATION WALL", icon: "🏆" },
+  { href: "/", label: "FORWARD MARKET" },
+  { href: "/market/gT4-NOW", match: "/market", label: "TRADE (KURU)" },
+  { href: "/hours", label: "DELIVERY QUEUE" },
+  { href: "/provider", label: "PROVIDE & MINT" },
+  { href: "/providers", label: "REPUTATION WALL" },
 ];
 
 export function Header() {
@@ -35,73 +34,67 @@ export function Header() {
   }, []);
 
   return (
-    <header className="border-b border-white/[0.08] bg-obsidian/90 backdrop-blur-xl sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3">
+    <header className="border-b-2 border-black bg-white sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-6 min-w-0">
-          <Link href="/" className="flex items-center gap-2.5 font-black text-lg tracking-wider text-white shrink-0 group">
-            <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-grid-monad/40 group-hover:border-grid-monad transition-colors duration-200">
-              <Image src="/logo.svg" alt="" width={32} height={32} className="object-cover" priority />
-              <div className="absolute inset-0 bg-grid-monad/10 pointer-events-none" />
+          <Link href="/" className="flex items-center gap-3 group">
+            {/* Black square with capital white letter icon */}
+            <div className="w-8 h-8 bg-black flex items-center justify-center text-white font-black text-lg border-2 border-black">
+              G
             </div>
-            <div className="flex flex-col">
-              <span className="font-extrabold tracking-tight text-white leading-none">GRIDLOCK</span>
-              <span className="text-[9px] font-mono tracking-widest text-grid-cyan uppercase mt-0.5">COMPUTE FORWARDS</span>
+            <div className="flex items-center gap-2">
+              <span className="font-black text-xl tracking-tight text-black">GRIDLOCK</span>
+              <span className="text-xl font-bold text-black">|</span>
             </div>
           </Link>
 
-          <nav className="hidden lg:flex gap-1 text-xs font-mono">
+          <nav className="hidden lg:flex gap-4 text-xs font-mono font-bold tracking-wider">
             {NAV.map((n) => {
               const active = isActive(path, n);
               return (
                 <Link
                   key={n.href}
                   href={n.href}
-                  className={`relative px-3 py-1.5 rounded-lg tracking-wider transition-all duration-150 flex items-center gap-1.5 ${
+                  className={`uppercase transition-colors py-1 ${
                     active
-                      ? "text-white font-bold bg-white/[0.08] border border-grid-monad/50 shadow-sm shadow-grid-monad/20"
-                      : "text-gray-400 hover:text-gray-200 hover:bg-white/[0.03]"
+                      ? "text-black border-b-2 border-black font-black"
+                      : "text-gray-700 hover:text-black"
                   }`}
                 >
-                  <span className="text-xs">{n.icon}</span>
                   {n.label}
-                  {active && (
-                    <span className="absolute bottom-0 left-2 right-2 h-[2px] bg-gradient-to-r from-grid-monad to-grid-cyan rounded-full" />
-                  )}
                 </Link>
               );
             })}
           </nav>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* Live Monad Block Pulse Beacon */}
-          <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-lg bg-surface/80 border border-white/[0.06] text-[11px] font-mono text-gray-400">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-grid-cyan opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-grid-cyan" />
-            </span>
-            <span>MONAD #{blockHeight.toLocaleString()}</span>
-            <span className="text-gray-600">·</span>
-            <span className="text-grid-cyan">400ms</span>
-          </div>
+        <div className="flex items-center gap-3">
+          {/* How It Works Button from image */}
+          <Link
+            href="/#how-it-works"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white border-2 border-black shadow-[3px_3px_0px_#000] text-xs font-mono font-bold uppercase hover:bg-neutral-100 transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+          >
+            <span>⊙</span> HOW IT WORKS
+          </Link>
 
           <AuthButton />
         </div>
       </div>
 
-      {/* Mobile Navigation Scrollbar */}
-      <nav className="lg:hidden flex gap-1.5 overflow-x-auto px-3 pb-2 pt-1 text-xs font-mono sleek-scroll border-t border-white/[0.04]">
+      {/* Mobile Navigation */}
+      <nav className="lg:hidden flex gap-2 overflow-x-auto px-4 py-2 text-xs font-mono font-bold sleek-scroll border-t-2 border-black bg-[#FFFDF7]">
         {NAV.map((n) => {
           const active = isActive(path, n);
           return (
             <Link
               key={n.href}
               href={n.href}
-              className={`px-3 py-1.5 rounded-lg whitespace-nowrap flex items-center gap-1.5 transition-colors ${
-                active ? "bg-grid-monad text-black font-bold" : "text-gray-300 bg-surface border border-white/[0.06]"
+              className={`px-3 py-1.5 whitespace-nowrap border-2 border-black uppercase text-xs ${
+                active
+                  ? "bg-neo-yellow text-black shadow-neo-sm font-black"
+                  : "bg-white text-black hover:bg-gray-100"
               }`}
             >
-              <span>{n.icon}</span>
               {n.label}
             </Link>
           );
@@ -118,7 +111,8 @@ function AuthButton() {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const onDoc = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && setOpen(false);
+    const onDoc = (e: MouseEvent) =>
+      ref.current && !ref.current.contains(e.target as Node) && setOpen(false);
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
@@ -135,59 +129,58 @@ function AuthButton() {
     <div className="relative" ref={ref}>
       {session ? (
         <div className="flex items-center gap-2">
-          {/* Radial Spend Capsule */}
           <div
-            title="Scoped session allowance: Can only sign Gridlock + Kuru transactions"
-            className="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-lg border border-grid-pass/30 bg-grid-pass/10 text-grid-pass text-[11px] font-mono"
+            title="Scoped session allowance"
+            className="hidden md:flex items-center gap-2 px-2.5 py-1.5 border-2 border-black bg-neo-green text-black text-xs font-mono font-bold shadow-neo-sm"
           >
-            <div className="w-2 h-2 rounded-full bg-grid-pass animate-pulse" />
-            <span>SESSION: ${spentGusd.toFixed(1)} / ${SESSION_CAP_GUSD} gUSD</span>
-            <div className="w-12 h-1.5 bg-black/40 rounded-full overflow-hidden border border-white/10">
-              <div className="h-full bg-grid-pass transition-all duration-300" style={{ width: `${spendPct}%` }} />
-            </div>
+            <div className="w-2 h-2 bg-black animate-pulse" />
+            <span>
+              ${spentGusd.toFixed(0)} / ${SESSION_CAP_GUSD} gUSD
+            </span>
           </div>
 
           <button
             onClick={() => setOpen((o) => !o)}
-            className="flex items-center gap-2 px-3 py-1.5 text-xs font-mono font-medium rounded-lg bg-surface border border-white/10 hover:border-grid-monad/50 text-white transition-all active:scale-[0.98]"
+            className="flex items-center gap-2 px-3.5 py-1.5 text-xs font-mono font-bold uppercase bg-white border-2 border-black shadow-[3px_3px_0px_#000] hover:bg-neutral-50 transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
           >
-            <span className="w-2 h-2 rounded-full bg-grid-pass" />
+            <span className="w-2 h-2 bg-neo-green border border-black" />
             <span>{shortAddr(session.address)}</span>
-            <span className="text-[10px] text-gray-500">▼</span>
+            <span className="text-[10px]">▼</span>
           </button>
         </div>
       ) : (
         <button
           onClick={() => (storedPasskey ? signIn() : setOpen((o) => !o))}
           disabled={busy}
-          className="relative group overflow-hidden px-4 py-2 text-xs font-mono font-bold tracking-wider rounded-lg bg-gradient-to-r from-grid-monad to-purple-600 text-black hover:brightness-110 shadow-lg shadow-grid-monad/20 border border-grid-monad/50 transition-all active:scale-[0.98] disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-neo-yellow hover:bg-neo-yellowDark text-black font-mono font-black text-xs uppercase border-2 border-black shadow-[3px_3px_0px_#000] transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-50"
         >
-          <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
           {busy ? (
             <span className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-full border-2 border-black border-t-transparent animate-spin" />
-              AUTHENTICATING…
+              CONNECTING…
             </span>
           ) : storedPasskey ? (
-            "PASSKEY SIGN IN"
+            "SIGN IN ↗"
           ) : (
-            "CONNECT PASSKEY"
+            "CONNECT WALLET ↗"
           )}
         </button>
       )}
 
       {open && (
-        <div className="absolute right-0 mt-2 w-[min(24rem,calc(100vw-2rem))] rounded-2xl border border-white/15 bg-obsidian/95 backdrop-blur-2xl shadow-2xl p-4 sm:p-5 space-y-4 text-sm z-50 hud-box">
+        <div className="absolute right-0 mt-2 w-[min(24rem,calc(100vw-2rem))] border-2 border-black bg-white shadow-neo-lg p-5 space-y-4 text-sm z-50">
           {session ? (
             <>
               <div className="space-y-1.5">
-                <div className="text-[10px] font-mono uppercase tracking-widest text-gray-400">SCOPED PASSKEY WALLET</div>
-                <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-black/50 border border-white/[0.08]">
+                <div className="text-xs font-mono uppercase font-black text-black">
+                  SCOPED PASSKEY WALLET
+                </div>
+                <div className="flex items-center justify-between gap-2 p-2 bg-[#FFFDF7] border-2 border-black shadow-neo-sm">
                   <a
                     href={addressUrl(session.address)}
                     target="_blank"
                     rel="noreferrer"
-                    className="font-mono text-xs text-grid-cyan truncate hover:underline"
+                    className="font-mono text-xs text-black truncate hover:underline font-bold"
                   >
                     {session.address}
                   </a>
@@ -195,23 +188,28 @@ function AuthButton() {
                 </div>
               </div>
 
-              <div className="rounded-xl bg-titanium/80 border border-white/[0.08] p-3 space-y-2">
+              <div className="bg-neo-yellow border-2 border-black p-3 space-y-2 shadow-neo-sm">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="font-semibold text-white">Session Security Bounds</span>
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-grid-monad/20 text-grid-monad">
+                  <span className="font-black uppercase text-black">Session Security Bounds</span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 bg-black text-white font-bold">
                     ALLOWLIST ACTIVE
                   </span>
                 </div>
-                <p className="text-[11px] text-gray-400 leading-relaxed">
-                  Signs only Gridlock Escrow + Kuru DEX contracts. Zero native MON transfer risks, zero external RPC calls.
+                <p className="text-xs text-black font-medium leading-relaxed">
+                  Signs only Gridlock Escrow + Kuru DEX contracts. Zero native MON transfer risks.
                 </p>
                 <div className="space-y-1">
-                  <div className="flex justify-between text-[11px] font-mono text-gray-300">
+                  <div className="flex justify-between text-xs font-mono font-bold text-black">
                     <span>Allowance Spent:</span>
-                    <span className="text-white">${spentGusd.toFixed(2)} / ${SESSION_CAP_GUSD} gUSD</span>
+                    <span>
+                      ${spentGusd.toFixed(2)} / ${SESSION_CAP_GUSD} gUSD
+                    </span>
                   </div>
-                  <div className="w-full h-1.5 bg-black/60 rounded-full overflow-hidden border border-white/10">
-                    <div className="h-full bg-grid-monad transition-all duration-300" style={{ width: `${spendPct}%` }} />
+                  <div className="w-full h-2 bg-white border border-black overflow-hidden">
+                    <div
+                      className="h-full bg-black transition-all duration-300"
+                      style={{ width: `${spendPct}%` }}
+                    />
                   </div>
                 </div>
               </div>
@@ -221,21 +219,21 @@ function AuthButton() {
                   signOut();
                   setOpen(false);
                 }}
-                className="w-full py-2.5 rounded-lg bg-surface hover:bg-grid-700/80 border border-white/10 text-xs font-mono font-semibold text-red-400 hover:text-red-300 transition-colors"
+                className="w-full py-2.5 bg-neo-pink text-black border-2 border-black shadow-neo-sm font-mono font-bold text-xs uppercase hover:bg-pink-400 transition-colors"
               >
                 Sign out (Wipe Session Key)
               </button>
             </>
           ) : (
             <>
-              {/* High-Tech Biometric Prompt Animation */}
               <div className="text-center py-2 space-y-2">
-                <div className="relative w-14 h-14 mx-auto rounded-full bg-grid-monad/10 border border-grid-monad/40 flex items-center justify-center">
-                  <span className="text-2xl animate-pulse">🔒</span>
-                  <div className="absolute inset-0 rounded-full border border-grid-monad/30 animate-ping opacity-40 pointer-events-none" />
+                <div className="w-12 h-12 mx-auto bg-neo-yellow border-2 border-black shadow-neo-sm flex items-center justify-center text-2xl font-bold">
+                  🔒
                 </div>
-                <h3 className="font-bold text-white text-base tracking-tight">Biometric Passkey Authentication</h3>
-                <p className="text-xs text-gray-400 max-w-xs mx-auto">
+                <h3 className="font-black text-black text-base uppercase">
+                  Biometric Passkey Authentication
+                </h3>
+                <p className="text-xs text-gray-700 font-medium max-w-xs mx-auto">
                   Gridlock derives non-custodial trading keys directly from WebAuthn TouchID / FaceID. Zero seed phrases.
                 </p>
               </div>
@@ -243,23 +241,25 @@ function AuthButton() {
               <button
                 onClick={() => signIn()}
                 disabled={busy}
-                className="w-full py-2.5 rounded-lg bg-gradient-to-r from-grid-monad to-purple-600 text-black font-mono font-bold text-xs tracking-wider hover:brightness-110 shadow-lg shadow-grid-monad/25 transition-all disabled:opacity-50"
+                className="w-full py-2.5 bg-neo-yellow hover:bg-neo-yellowDark text-black font-mono font-black text-xs uppercase border-2 border-black shadow-neo-sm transition-all disabled:opacity-50"
               >
                 TOUCH ID / PASSKEY SIGN IN
               </button>
 
-              <div className="border-t border-white/[0.08] pt-3 space-y-2">
-                <div className="text-[11px] font-mono text-gray-400 uppercase">First Time? Create New Key:</div>
+              <div className="border-t-2 border-black pt-3 space-y-2">
+                <div className="text-xs font-mono font-bold text-black uppercase">
+                  First Time? Create New Key:
+                </div>
                 <input
                   value={label}
                   onChange={(e) => setLabel(e.target.value)}
                   placeholder="Passkey label (e.g. dev@macbook)"
-                  className="w-full bg-black/60 border border-white/10 rounded-lg p-2.5 text-white font-mono text-xs focus:outline-none focus:border-grid-monad"
+                  className="w-full bg-white border-2 border-black p-2 text-black font-mono text-xs focus:outline-none shadow-neo-sm"
                 />
                 <button
                   onClick={() => signUp(label)}
                   disabled={busy}
-                  className="w-full py-2 rounded-lg bg-surface border border-white/10 hover:border-white/20 text-xs font-mono font-semibold text-white transition-all disabled:opacity-50"
+                  className="w-full py-2 bg-white border-2 border-black text-xs font-mono font-bold uppercase hover:bg-neutral-100 transition-all shadow-neo-sm disabled:opacity-50"
                 >
                   Create Passkey Wallet
                 </button>
@@ -267,12 +267,19 @@ function AuthButton() {
 
               {storedPasskey && (
                 <div className="text-center pt-1">
-                  <button onClick={() => signIn({ anyPasskey: true })} className="text-[11px] text-gray-400 underline hover:text-white">
+                  <button
+                    onClick={() => signIn({ anyPasskey: true })}
+                    className="text-xs text-black underline font-bold"
+                  >
                     Use a different biometric credential
                   </button>
                 </div>
               )}
-              {error && <div className="p-2 rounded bg-red-500/10 border border-red-500/30 text-xs text-red-400 font-mono">{error}</div>}
+              {error && (
+                <div className="p-2 bg-neo-pink/30 border-2 border-black text-xs text-black font-mono font-bold">
+                  {error}
+                </div>
+              )}
             </>
           )}
         </div>

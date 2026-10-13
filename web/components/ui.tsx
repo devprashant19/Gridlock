@@ -19,16 +19,16 @@ export function Card({
 }) {
   return (
     <section
-      className={`hud-box rounded-xl p-4 sm:p-5 space-y-4 min-w-0 transition-all duration-300 hover:border-grid-600/60 ${
-        glow ? "glow-monad border-grid-monad/40" : ""
-      } ${className}`}
+      className={`bg-white border-2 border-black shadow-neo p-4 sm:p-5 space-y-4 min-w-0 ${className}`}
     >
       {(title || right) && (
-        <div className="flex items-center justify-between gap-3 border-b border-white/[0.06] pb-3">
+        <div className="flex items-center justify-between gap-3 border-b-2 border-black pb-3">
           {title && (
             <div className="flex items-center gap-2">
-              <span className="w-1.5 h-3.5 bg-grid-monad rounded-xs inline-block animate-pulse" />
-              <h2 className="text-base sm:text-lg font-bold tracking-tight text-white">{title}</h2>
+              <span className="w-2 h-4 bg-black inline-block" />
+              <h2 className="text-base sm:text-lg font-black tracking-tight uppercase text-black">
+                {title}
+              </h2>
             </div>
           )}
           {right}
@@ -51,12 +51,13 @@ export function HUDCard({
   className?: string;
 }) {
   return (
-    <div className={`relative bg-titanium/90 border border-white/[0.08] rounded-xl p-4 sm:p-5 backdrop-blur-md overflow-hidden ${className}`}>
-      <div className="absolute top-0 right-0 w-24 h-24 bg-grid-monad/5 rounded-full blur-2xl pointer-events-none" />
-      <div className="flex items-center justify-between gap-2 border-b border-white/[0.06] pb-2.5 mb-3.5">
+    <div className={`bg-white border-2 border-black shadow-neo p-4 sm:p-5 ${className}`}>
+      <div className="flex items-center justify-between gap-2 border-b-2 border-black pb-2.5 mb-3.5">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-grid-cyan animate-pulse-glow" />
-          <span className="text-xs font-mono uppercase tracking-wider text-gray-300 font-semibold">{title}</span>
+          <span className="w-2.5 h-2.5 bg-black" />
+          <span className="text-xs font-mono uppercase tracking-wider text-black font-bold">
+            {title}
+          </span>
         </div>
         {badge}
       </div>
@@ -79,57 +80,76 @@ export function StatMetric({
   positive?: boolean;
 }) {
   return (
-    <div className="p-3 rounded-lg bg-obsidian/70 border border-white/[0.06] space-y-1">
-      <div className="text-[11px] font-mono uppercase text-gray-400 tracking-wider flex justify-between items-center">
+    <div className="p-3 bg-white border-2 border-black shadow-neo-sm space-y-1">
+      <div className="text-[11px] font-mono uppercase text-gray-700 font-bold tracking-wider flex justify-between items-center">
         <span>{label}</span>
         {delta && (
-          <span className={`text-[10px] px-1.5 py-0.2 rounded font-semibold ${positive ? "text-grid-pass bg-grid-pass/10" : "text-grid-fail bg-grid-fail/10"}`}>
+          <span
+            className={`text-[10px] px-1.5 py-0.5 border border-black font-bold uppercase ${
+              positive ? "bg-neo-green text-black" : "bg-neo-pink text-black"
+            }`}
+          >
             {delta}
           </span>
         )}
       </div>
-      <div className="text-lg sm:text-xl font-bold font-mono tracking-tight text-white">{value}</div>
-      {sub && <div className="text-[11px] text-gray-500 font-sans">{sub}</div>}
+      <div className="text-lg sm:text-xl font-black font-mono tracking-tight text-black">
+        {value}
+      </div>
+      {sub && <div className="text-[11px] text-gray-600 font-medium">{sub}</div>}
     </div>
   );
 }
 
 type BtnProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "ghost" | "danger" | "cyan";
+  variant?: "primary" | "ghost" | "danger" | "cyan" | "green";
   loading?: boolean;
 };
 
-export function Button({ variant = "primary", loading, className = "", children, disabled, ...rest }: BtnProps) {
+export function Button({
+  variant = "primary",
+  loading,
+  className = "",
+  children,
+  disabled,
+  ...rest
+}: BtnProps) {
   const v = {
-    primary:
-      "bg-gradient-to-r from-grid-monad to-purple-600 text-black hover:brightness-110 shadow-lg shadow-grid-monad/20 border border-grid-monad/50",
-    cyan:
-      "bg-gradient-to-r from-grid-cyan to-teal-400 text-black hover:brightness-110 shadow-lg shadow-grid-cyan/20 border border-grid-cyan/50",
-    ghost: "bg-surface text-gray-200 border border-white/10 hover:border-grid-monad/60 hover:text-white hover:bg-grid-700/50",
-    danger: "bg-gradient-to-r from-grid-fail to-rose-600 text-white hover:brightness-110 shadow-lg shadow-grid-fail/20 border border-grid-fail/50",
+    primary: "bg-neo-yellow hover:bg-neo-yellowDark text-black shadow-neo-sm",
+    cyan: "bg-neo-blue hover:bg-sky-300 text-black shadow-neo-sm",
+    green: "bg-neo-green hover:bg-emerald-300 text-black shadow-neo-sm",
+    ghost: "bg-white hover:bg-neutral-100 text-black shadow-neo-sm",
+    danger: "bg-neo-pink hover:bg-pink-400 text-black shadow-neo-sm",
   }[variant];
 
   return (
     <button
       {...rest}
       disabled={disabled || loading}
-      className={`relative group overflow-hidden px-4 py-2.5 rounded-lg font-semibold text-sm transition-all duration-150 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 ${v} ${className}`}
+      className={`inline-flex items-center justify-center font-bold font-mono uppercase text-xs sm:text-sm px-4 py-2.5 border-2 border-black transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed ${v} ${className}`}
     >
-      <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/15 to-transparent pointer-events-none" />
       {loading && (
-        <span className="inline-block w-3.5 h-3.5 mr-2 rounded-full border-2 border-current border-t-transparent animate-spin align-[-2px]" />
+        <span className="inline-block w-3.5 h-3.5 mr-2 rounded-full border-2 border-black border-t-transparent animate-spin" />
       )}
       {children}
     </button>
   );
 }
 
-export function Field({ label, hint, children }: { label: string; hint?: ReactNode; children: ReactNode }) {
+export function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <label className="block text-sm space-y-1">
       <div className="flex justify-between items-center text-xs">
-        <span className="text-gray-400 font-medium">{label}</span>
-        {hint && <span className="text-[11px] text-gray-500 font-mono">{hint}</span>}
+        <span className="text-black font-bold uppercase tracking-wider">{label}</span>
+        {hint && <span className="text-[11px] text-gray-600 font-mono">{hint}</span>}
       </div>
       {children}
     </label>
@@ -137,12 +157,12 @@ export function Field({ label, hint, children }: { label: string; hint?: ReactNo
 }
 
 export const inputCls =
-  "w-full bg-obsidian/90 border border-white/10 rounded-lg p-2.5 text-white font-mono text-sm placeholder:text-gray-600 focus:outline-none focus:border-grid-monad focus:ring-1 focus:ring-grid-monad/40 transition-colors duration-150";
+  "w-full bg-white border-2 border-black p-2.5 text-black font-mono text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black shadow-neo-sm transition-all";
 
 export function Spinner({ label = "Loading…" }: { label?: string }) {
   return (
-    <div className="flex items-center gap-2.5 text-xs font-mono uppercase tracking-wider text-gray-400 py-6 justify-center">
-      <span className="w-4 h-4 rounded-full border-2 border-grid-monad border-t-transparent animate-spin" />
+    <div className="flex items-center gap-2.5 text-xs font-mono uppercase tracking-wider text-black font-bold py-6 justify-center">
+      <span className="w-4 h-4 rounded-full border-2 border-black border-t-transparent animate-spin" />
       {label}
     </div>
   );
@@ -150,8 +170,8 @@ export function Spinner({ label = "Loading…" }: { label?: string }) {
 
 export function ErrorBox({ children }: { children: ReactNode }) {
   return (
-    <div className="p-3 rounded-lg bg-grid-fail/10 border border-grid-fail/30 text-grid-fail text-xs sm:text-sm font-medium break-words flex items-start gap-2">
-      <span className="text-sm shrink-0">⚠</span>
+    <div className="p-3 bg-neo-pink/30 border-2 border-black shadow-neo-sm text-black text-xs sm:text-sm font-bold flex items-start gap-2">
+      <span className="text-base shrink-0">⚠</span>
       <div className="flex-1 min-w-0">{children}</div>
     </div>
   );
@@ -159,7 +179,7 @@ export function ErrorBox({ children }: { children: ReactNode }) {
 
 export function Empty({ children }: { children: ReactNode }) {
   return (
-    <div className="py-8 text-center text-xs sm:text-sm text-gray-500 font-mono uppercase tracking-wider border border-dashed border-white/10 rounded-xl">
+    <div className="py-8 text-center text-xs sm:text-sm text-black font-mono uppercase font-bold tracking-wider border-2 border-dashed border-black bg-white p-4">
       {children}
     </div>
   );
@@ -170,32 +190,29 @@ export function Badge({
   pulse = false,
   children,
 }: {
-  tone?: "pass" | "degraded" | "fail" | "monad" | "cyan" | "neutral";
+  tone?: "pass" | "degraded" | "fail" | "monad" | "cyan" | "neutral" | "yellow" | "pink" | "green" | "blue";
   pulse?: boolean;
   children: ReactNode;
 }) {
   const t = {
-    pass: "bg-grid-pass/15 text-grid-pass border-grid-pass/30",
-    degraded: "bg-grid-degraded/15 text-grid-degraded border-grid-degraded/30",
-    fail: "bg-grid-fail/15 text-grid-fail border-grid-fail/30",
-    monad: "bg-grid-monad/15 text-grid-monad border-grid-monad/30",
-    cyan: "bg-grid-cyan/15 text-grid-cyan border-grid-cyan/30",
-    neutral: "bg-surface text-gray-300 border-white/10",
-  }[tone];
-
-  const dot = {
-    pass: "bg-grid-pass",
-    degraded: "bg-grid-degraded",
-    fail: "bg-grid-fail",
-    monad: "bg-grid-monad",
-    cyan: "bg-grid-cyan",
-    neutral: "bg-gray-400",
+    pass: "bg-neo-green text-black",
+    degraded: "bg-neo-yellow text-black",
+    fail: "bg-neo-pink text-black",
+    monad: "bg-purple-200 text-black",
+    cyan: "bg-neo-blue text-black",
+    yellow: "bg-neo-yellow text-black",
+    pink: "bg-neo-pink text-black",
+    green: "bg-neo-green text-black",
+    blue: "bg-neo-blue text-black",
+    neutral: "bg-white text-black",
   }[tone];
 
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border whitespace-nowrap ${t}`}>
-      {pulse && <span className={`w-1.5 h-1.5 rounded-full animate-ping ${dot}`} />}
-      {!pulse && <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />}
+    <span
+      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 border-2 border-black text-xs font-mono font-bold uppercase tracking-wider shadow-neo-sm whitespace-nowrap ${t}`}
+    >
+      {pulse && <span className="w-2 h-2 rounded-full bg-black animate-ping" />}
+      {!pulse && <span className="w-1.5 h-1.5 bg-black" />}
       {children}
     </span>
   );
@@ -211,26 +228,36 @@ export function CopyButton({ text, label = "Copy" }: { text: string; label?: str
           await navigator.clipboard.writeText(text);
           setDone(true);
           setTimeout(() => setDone(false), 1500);
-        } catch {
-          /* clipboard blocked */
-        }
+        } catch {}
       }}
-      className="shrink-0 text-[11px] font-mono px-2 py-0.5 rounded bg-surface hover:bg-grid-700 border border-white/10 text-gray-300 hover:text-white transition-colors"
+      className="shrink-0 text-[11px] font-mono font-bold uppercase px-2 py-0.5 bg-white hover:bg-black hover:text-white border-2 border-black text-black transition-colors shadow-neo-sm active:translate-x-[1px] active:translate-y-[1px]"
     >
       {done ? "✓ Copied" : label}
     </button>
   );
 }
 
-export function PageTitle({ title, sub, right }: { title: ReactNode; sub?: ReactNode; right?: ReactNode }) {
+export function PageTitle({
+  title,
+  sub,
+  right,
+}: {
+  title: ReactNode;
+  sub?: ReactNode;
+  right?: ReactNode;
+}) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-white/[0.06] pb-4 mb-2">
+    <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b-2 border-black pb-4 mb-4">
       <div className="min-w-0 space-y-1">
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white break-words flex items-center gap-2.5">
-          <span className="w-2 h-5 bg-gradient-to-b from-grid-monad to-grid-cyan rounded-xs" />
+        <h1 className="text-2xl sm:text-4xl font-black uppercase tracking-tight text-black break-words flex items-center gap-2.5">
+          <span className="w-3 h-6 bg-black inline-block" />
           {title}
         </h1>
-        {sub && <p className="text-gray-400 text-xs sm:text-sm max-w-2xl leading-relaxed">{sub}</p>}
+        {sub && (
+          <p className="text-gray-700 text-xs sm:text-sm font-medium max-w-2xl leading-relaxed">
+            {sub}
+          </p>
+        )}
       </div>
       {right && <div className="self-start sm:self-auto max-w-full shrink-0">{right}</div>}
     </div>
@@ -238,17 +265,25 @@ export function PageTitle({ title, sub, right }: { title: ReactNode; sub?: React
 }
 
 /** Wraps an action area: prompts sign-in when there's no session. */
-export function SignInGate({ children, what = "do this" }: { children: ReactNode; what?: string }) {
+export function SignInGate({
+  children,
+  what = "do this",
+}: {
+  children: ReactNode;
+  what?: string;
+}) {
   const { session, signIn, busy } = useWallet();
   if (session) return <>{children}</>;
   return (
-    <div className="p-5 rounded-xl bg-obsidian/80 border border-dashed border-white/20 text-center space-y-3 relative overflow-hidden">
-      <div className="w-12 h-12 mx-auto rounded-full bg-grid-monad/10 border border-grid-monad/30 flex items-center justify-center text-grid-monad text-xl">
+    <div className="p-6 bg-white border-2 border-black shadow-neo text-center space-y-3 relative overflow-hidden">
+      <div className="w-12 h-12 mx-auto bg-neo-yellow border-2 border-black shadow-neo-sm flex items-center justify-center text-black text-2xl font-bold">
         ⚿
       </div>
       <div className="max-w-md mx-auto space-y-1">
-        <div className="font-bold text-white text-sm">Passkey Authentication Required</div>
-        <p className="text-xs text-gray-400">
+        <div className="font-black uppercase text-black text-base">
+          Passkey Authentication Required
+        </div>
+        <p className="text-xs text-gray-700 font-medium">
           Sign in with your biometric passkey to {what}. One prompt creates a scoped, trading-only session with zero extension popups.
         </p>
       </div>
@@ -262,10 +297,10 @@ export function SignInGate({ children, what = "do this" }: { children: ReactNode
 export function MockBanner() {
   if (!IS_MOCK) return null;
   return (
-    <div className="p-3 rounded-lg bg-grid-degraded/10 border border-grid-degraded/30 text-grid-degraded text-xs sm:text-sm flex items-center gap-2">
-      <span className="w-2 h-2 rounded-full bg-grid-degraded animate-ping shrink-0" />
+    <div className="p-3 bg-neo-yellow border-2 border-black shadow-neo-sm text-black text-xs sm:text-sm font-bold flex items-center gap-2">
+      <span className="w-2 h-2 rounded-full bg-black animate-ping shrink-0" />
       <span>
-        <strong>Preview data mode:</strong> <code>deployments/testnet.json</code> has staging addresses. Real trades route to Monad Testnet once deployed.
+        <strong>PREVIEW DATA MODE:</strong> <code>deployments/testnet.json</code> has staging addresses. Real trades route to Monad Testnet once deployed.
       </span>
     </div>
   );
@@ -275,18 +310,20 @@ export function GasWarning({ mon }: { mon?: bigint }) {
   const { session } = useWallet();
   if (!session || IS_MOCK || mon === undefined || mon > 0n) return null;
   return (
-    <div className="p-3.5 rounded-lg bg-grid-monad/10 border border-grid-monad/30 text-xs sm:text-sm text-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+    <div className="p-3.5 bg-neo-blue border-2 border-black shadow-neo-sm text-xs sm:text-sm text-black flex flex-col sm:flex-row sm:items-center justify-between gap-2 font-bold">
       <div className="flex items-center gap-2">
-        <span className="text-grid-monad text-base">⚡</span>
+        <span className="text-lg">⚡</span>
         <span>Your passkey wallet has no MON for gas. Claim free testnet MON:</span>
       </div>
       <div className="flex items-center gap-2 self-end sm:self-auto">
-        <code className="text-xs font-mono text-grid-monad bg-black/40 px-2 py-1 rounded">{session.address.slice(0, 10)}…</code>
+        <code className="text-xs font-mono text-black bg-white px-2 py-1 border border-black">
+          {session.address.slice(0, 10)}…
+        </code>
         <a
           href={MON_FAUCET}
           target="_blank"
           rel="noreferrer"
-          className="text-xs font-semibold px-2.5 py-1 rounded bg-grid-monad text-black hover:brightness-110"
+          className="text-xs font-bold px-3 py-1 bg-neo-yellow text-black border border-black hover:bg-neo-yellowDark shadow-neo-sm"
         >
           Faucet →
         </a>

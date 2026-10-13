@@ -70,26 +70,26 @@ export default function MarketPage({ params }: { params?: Promise<{ series: stri
         title={
           <div className="flex items-center gap-3">
             <span>{s.symbol}</span>
-            <Badge tone="cyan" pulse>
+            <Badge tone="yellow" pulse>
               MONAD L2 ORDER BOOK
             </Badge>
           </div>
         }
         sub={
-          <span className="font-mono text-xs sm:text-sm text-gray-300">
+          <span className="font-mono text-xs sm:text-sm text-black/70 font-medium">
             {s.className} ({gpuInfo?.ratedTflops ?? "?"} TFLOPS FP16) · Window: {fmtDate(s.windowStart)} – {fmtDate(s.windowEnd)} · Physically Delivered (1 Token = 1 GPU-Hour)
           </span>
         }
         right={
-          <div className="flex gap-1.5 overflow-x-auto sleek-scroll no-scrollbar py-1">
+          <div className="flex gap-2 overflow-x-auto sleek-scroll no-scrollbar py-1">
             {SERIES.map((x) => (
               <Link
                 key={x.symbol}
                 href={`/market/${x.symbol}`}
-                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold whitespace-nowrap border transition-all ${
+                className={`px-3 py-1.5 text-xs font-mono font-black uppercase tracking-wider whitespace-nowrap border-2 border-black transition-all ${
                   x.symbol === s.symbol
-                    ? "bg-grid-monad text-black border-grid-monad shadow-sm shadow-grid-monad/30"
-                    : "bg-surface border-white/10 text-gray-400 hover:text-white hover:border-white/20"
+                    ? "bg-neo-yellow text-black shadow-[2px_2px_0px_#000]"
+                    : "bg-white text-black hover:bg-neo-cream"
                 }`}
               >
                 {x.symbol}
@@ -104,41 +104,41 @@ export default function MarketPage({ params }: { params?: Promise<{ series: stri
 
       {/* Market Stats Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="hud-box p-3 rounded-xl">
-          <div className="text-[10px] font-mono text-gray-400 uppercase">Ornn Spot Benchmark</div>
-          <div className="text-lg font-bold font-mono text-white mt-0.5">
+        <div className="bg-neo-yellow/30 border-2 border-black p-3.5 shadow-[3px_3px_0px_#000]">
+          <div className="text-[10px] font-mono font-black uppercase text-black/60">Ornn Spot Benchmark</div>
+          <div className="text-xl font-black font-mono text-black mt-1">
             {spot != null ? fmtUsd(spot, 4) : "—"} / hr
           </div>
-          <div className="text-[10px] text-gray-500 font-mono">Reference Spot Index</div>
+          <div className="text-[10px] text-black/60 font-mono font-medium mt-0.5">Reference Spot Index</div>
         </div>
-        <div className="hud-box p-3 rounded-xl">
-          <div className="text-[10px] font-mono text-gray-400 uppercase">Best Kuru Ask</div>
-          <div className="text-lg font-bold font-mono text-grid-monad mt-0.5">
+        <div className="bg-neo-blue/30 border-2 border-black p-3.5 shadow-[3px_3px_0px_#000]">
+          <div className="text-[10px] font-mono font-black uppercase text-black/60">Best Kuru Ask</div>
+          <div className="text-xl font-black font-mono text-black mt-1">
             {bestAsk != null ? fmtUsd(bestAsk, 4) : "—"} / hr
           </div>
-          <div className="text-[10px] text-gray-500 font-mono">Immediate Fill Ask</div>
+          <div className="text-[10px] text-black/60 font-mono font-medium mt-0.5">Immediate Fill Ask</div>
         </div>
-        <div className="hud-box p-3 rounded-xl">
-          <div className="text-[10px] font-mono text-gray-400 uppercase">Forward Basis Spread</div>
-          <div className="text-lg font-bold font-mono mt-0.5">
+        <div className="bg-neo-pink/30 border-2 border-black p-3.5 shadow-[3px_3px_0px_#000]">
+          <div className="text-[10px] font-mono font-black uppercase text-black/60">Forward Basis Spread</div>
+          <div className="text-xl font-black font-mono mt-1">
             {basis != null ? (
-              <span className={basis <= 0 ? "text-grid-pass" : "text-grid-fail"}>
+              <span className={basis <= 0 ? "text-emerald-700" : "text-rose-700"}>
                 {basis > 0 ? `+${basis.toFixed(1)}%` : `${basis.toFixed(1)}%`}
               </span>
             ) : (
-              <span className="text-gray-500">—</span>
+              <span className="text-black/40">—</span>
             )}
           </div>
-          <div className="text-[10px] text-gray-500 font-mono">
+          <div className="text-[10px] text-black/60 font-mono font-medium mt-0.5">
             {basis != null && basis <= 0 ? "Forward Discount" : "Forward Premium"}
           </div>
         </div>
-        <div className="hud-box p-3 rounded-xl">
-          <div className="text-[10px] font-mono text-gray-400 uppercase">Hardware Pass Bar</div>
-          <div className="text-lg font-bold font-mono text-grid-cyan mt-0.5">
+        <div className="bg-neo-green/30 border-2 border-black p-3.5 shadow-[3px_3px_0px_#000]">
+          <div className="text-[10px] font-mono font-black uppercase text-black/60">Hardware Pass Bar</div>
+          <div className="text-xl font-black font-mono text-black mt-1">
             ≥ {gpuInfo?.passMinTflops ?? "?"} TF
           </div>
-          <div className="text-[10px] text-gray-500 font-mono">Slashes if &lt; {gpuInfo?.failMaxTflops ?? "?"} TF</div>
+          <div className="text-[10px] text-black/60 font-mono font-medium mt-0.5">Slashes if &lt; {gpuInfo?.failMaxTflops ?? "?"} TF</div>
         </div>
       </div>
 
@@ -153,13 +153,13 @@ export default function MarketPage({ params }: { params?: Promise<{ series: stri
                 href={addressUrl(s.kuruMarket)}
                 target="_blank"
                 rel="noreferrer"
-                className="text-xs font-mono text-grid-cyan hover:underline flex items-center gap-1"
+                className="text-xs font-mono font-bold text-black underline flex items-center gap-1 hover:text-black/70"
               >
                 <span>DEX: {s.kuruMarket.slice(0, 10)}…</span>
                 <span>↗</span>
               </a>
             ) : (
-              <span className="text-xs font-mono text-gray-500">Market not deployed</span>
+              <span className="text-xs font-mono text-black/50">Market not deployed</span>
             )
           }
         >
@@ -194,22 +194,22 @@ export default function MarketPage({ params }: { params?: Promise<{ series: stri
             <Card title="Account Balances & Margin">
               {bal.data ? (
                 <div className="space-y-3 font-mono text-xs">
-                  <div className="flex justify-between items-center p-2 rounded bg-obsidian/60 border border-white/[0.06]">
-                    <span className="text-gray-400 font-sans">gUSD Stablecoin:</span>
-                    <span className="font-bold text-white">{fmtNum(gusd(bal.data.gusd))} gUSD</span>
+                  <div className="flex justify-between items-center p-2.5 bg-neo-cream border-2 border-black shadow-[2px_2px_0px_#000]">
+                    <span className="text-black/70 font-sans font-bold">gUSD Stablecoin:</span>
+                    <span className="font-black text-black">{fmtNum(gusd(bal.data.gusd))} gUSD</span>
                   </div>
-                  <div className="flex justify-between items-center p-2 rounded bg-obsidian/60 border border-white/[0.06]">
-                    <span className="text-gray-400 font-sans">{s.symbol} in Wallet:</span>
-                    <span className="font-bold text-grid-monad">{fmtNum(hoursFromWei(bal.data.hours[s.symbol]))} h</span>
+                  <div className="flex justify-between items-center p-2.5 bg-neo-cream border-2 border-black shadow-[2px_2px_0px_#000]">
+                    <span className="text-black/70 font-sans font-bold">{s.symbol} in Wallet:</span>
+                    <span className="font-black text-black">{fmtNum(hoursFromWei(bal.data.hours[s.symbol]))} h</span>
                   </div>
-                  <div className="flex justify-between items-center p-2 rounded bg-obsidian/60 border border-white/[0.06]">
-                    <span className="text-gray-400 font-sans">{s.symbol} on Kuru Margin:</span>
-                    <span className="font-bold text-grid-cyan">{fmtNum(bal.data.marginHours)} h</span>
+                  <div className="flex justify-between items-center p-2.5 bg-neo-cream border-2 border-black shadow-[2px_2px_0px_#000]">
+                    <span className="text-black/70 font-sans font-bold">{s.symbol} on Kuru Margin:</span>
+                    <span className="font-black text-black">{fmtNum(bal.data.marginHours)} h</span>
                   </div>
 
                   <Link
                     href="/hours"
-                    className="block text-center py-2.5 rounded-lg bg-surface hover:bg-grid-700/80 border border-white/10 hover:border-grid-cyan text-grid-cyan font-sans font-semibold text-xs transition-colors"
+                    className="block text-center py-2.5 bg-neo-yellow hover:bg-neo-yellow/80 border-2 border-black shadow-[3px_3px_0px_#000] text-black font-sans font-black text-xs uppercase tracking-wider transition-transform active:translate-x-[1px] active:translate-y-[1px]"
                   >
                     Redeem Hours for Machine Access →
                   </Link>
@@ -237,25 +237,25 @@ function BookView({ book, spot }: { book: Book; spot: number | null }) {
   const LevelRow = ({ l, side }: { l: [number, number]; side: "ask" | "bid" }) => {
     const widthPct = Math.min(100, Math.max(4, (l[1] / maxSize) * 100));
     return (
-      <div className="relative grid grid-cols-3 px-3 py-1.5 rounded font-mono text-xs transition-colors hover:bg-white/[0.04] group">
+      <div className="relative grid grid-cols-3 px-3 py-1.5 font-mono text-xs transition-colors hover:bg-black/5 group border-b border-black/10">
         <div
-          className={`absolute inset-y-0 right-0 rounded transition-all duration-300 ${
-            side === "ask" ? "bg-red-500/15 group-hover:bg-red-500/25" : "bg-emerald-500/15 group-hover:bg-emerald-500/25"
+          className={`absolute inset-y-0 right-0 transition-all duration-300 ${
+            side === "ask" ? "bg-rose-500/20 group-hover:bg-rose-500/30" : "bg-emerald-500/20 group-hover:bg-emerald-500/30"
           }`}
           style={{ width: `${widthPct}%` }}
         />
-        <span className={`relative font-bold ${side === "ask" ? "text-red-400" : "text-emerald-400"}`}>
+        <span className={`relative font-black ${side === "ask" ? "text-rose-700" : "text-emerald-700"}`}>
           ${l[0].toFixed(4)}
         </span>
-        <span className="relative text-right text-white font-medium">{fmtNum(l[1], 2)} h</span>
-        <span className="relative text-right text-gray-400">${fmtNum(l[0] * l[1], 2)}</span>
+        <span className="relative text-right text-black font-bold">{fmtNum(l[1], 2)} h</span>
+        <span className="relative text-right text-black/60 font-medium">${fmtNum(l[0] * l[1], 2)}</span>
       </div>
     );
   };
 
   return (
-    <div className="space-y-1.5 font-tabular">
-      <div className="grid grid-cols-3 px-3 text-[11px] font-mono uppercase tracking-wider text-gray-400 pb-2 border-b border-white/[0.08]">
+    <div className="space-y-2 font-tabular">
+      <div className="grid grid-cols-3 px-3 text-[11px] font-mono font-black uppercase tracking-wider text-black pb-2 border-b-2 border-black">
         <span>Price (gUSD/h)</span>
         <span className="text-right">Hours Depth</span>
         <span className="text-right">Total (gUSD)</span>
@@ -266,24 +266,24 @@ function BookView({ book, spot }: { book: Book; spot: number | null }) {
         {asks.length ? (
           asks.map((l) => <LevelRow key={`a-${l[0]}`} l={l} side="ask" />)
         ) : (
-          <div className="text-xs text-gray-500 px-3 py-3 font-mono">No resting asks on order book</div>
+          <div className="text-xs text-black/50 px-3 py-3 font-mono">No resting asks on order book</div>
         )}
       </div>
 
       {/* Mid-Market Spread Banner */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-3 py-2.5 my-2 border-y border-white/[0.08] bg-obsidian/60 text-xs font-mono rounded-lg">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-3.5 py-2.5 my-2 border-2 border-black bg-neo-yellow/30 text-xs font-mono shadow-[2px_2px_0px_#000]">
         <div className="flex items-center gap-2">
-          <span className="text-gray-400 uppercase text-[10px]">SPREAD:</span>
-          <span className="font-bold text-white">
+          <span className="text-black/60 font-black uppercase text-[10px]">SPREAD:</span>
+          <span className="font-black text-black">
             {spread != null ? `${spread.toFixed(4)} gUSD (${spreadBps?.toFixed(0)} bps)` : "—"}
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-gray-400 uppercase text-[10px]">SPOT BENCHMARK:</span>
-          <span className="font-bold text-grid-cyan">{spot != null ? fmtUsd(spot, 4) : "—"}</span>
+          <span className="text-black/60 font-black uppercase text-[10px]">SPOT BENCHMARK:</span>
+          <span className="font-black text-black">{spot != null ? fmtUsd(spot, 4) : "—"}</span>
         </div>
-        <div className="flex items-center gap-1.5 text-gray-400 text-[11px]">
-          <span className="w-1.5 h-1.5 rounded-full bg-grid-monad animate-ping" />
+        <div className="flex items-center gap-1.5 text-black font-bold text-[11px]">
+          <span className="w-2 h-2 rounded-full bg-emerald-600 animate-ping" />
           <span>{book.blockNumber ? `BLOCK #${book.blockNumber}` : "LIVE 400MS"}</span>
         </div>
       </div>
@@ -293,7 +293,7 @@ function BookView({ book, spot }: { book: Book; spot: number | null }) {
         {bids.length ? (
           bids.map((l) => <LevelRow key={`b-${l[0]}`} l={l} side="bid" />)
         ) : (
-          <div className="text-xs text-gray-500 px-3 py-3 font-mono">No resting bids on order book</div>
+          <div className="text-xs text-black/50 px-3 py-3 font-mono">No resting bids on order book</div>
         )}
       </div>
     </div>
@@ -346,23 +346,23 @@ function TradeForm({
   return (
     <div className="space-y-4">
       {/* Side Selector Tabs */}
-      <div className="flex rounded-lg bg-obsidian p-1 border border-white/[0.08] text-xs font-mono">
+      <div className="grid grid-cols-2 gap-2 text-xs font-mono">
         <button
           onClick={() => setSide("buy")}
-          className={`flex-1 py-2 font-bold rounded-md transition-all ${
+          className={`py-2.5 font-black uppercase tracking-wider border-2 border-black transition-all ${
             side === "buy"
-              ? "bg-grid-pass text-black shadow-md shadow-grid-pass/20"
-              : "text-gray-400 hover:text-white"
+              ? "bg-neo-green text-black shadow-[3px_3px_0px_#000]"
+              : "bg-white text-black/70 hover:bg-neo-cream"
           }`}
         >
           BUY FORWARD (IOC)
         </button>
         <button
           onClick={() => setSide("sell")}
-          className={`flex-1 py-2 font-bold rounded-md transition-all ${
+          className={`py-2.5 font-black uppercase tracking-wider border-2 border-black transition-all ${
             side === "sell"
-              ? "bg-grid-fail text-white shadow-md shadow-grid-fail/20"
-              : "text-gray-400 hover:text-white"
+              ? "bg-neo-pink text-black shadow-[3px_3px_0px_#000]"
+              : "bg-white text-black/70 hover:bg-neo-cream"
           }`}
         >
           SELL FORWARD (GTC)
@@ -378,7 +378,7 @@ function TradeForm({
                 <button
                   type="button"
                   onClick={() => setPercentQuote(1)}
-                  className="text-grid-cyan hover:underline"
+                  className="text-black font-black underline hover:text-black/70"
                 >
                   Max: ${gusd(userGusd).toFixed(2)}
                 </button>
@@ -396,7 +396,7 @@ function TradeForm({
                 className={`${inputCls} pr-14`}
                 placeholder="0.00"
               />
-              <span className="absolute right-3 top-2.5 text-xs font-mono text-gray-500">gUSD</span>
+              <span className="absolute right-3.5 top-3 text-xs font-mono font-bold text-black/60">gUSD</span>
             </div>
           </Field>
 
@@ -407,7 +407,7 @@ function TradeForm({
                 key={pct}
                 type="button"
                 onClick={() => setPercentQuote(pct)}
-                className="py-1 rounded bg-surface hover:bg-grid-700/80 border border-white/[0.06] text-[10px] font-mono text-gray-300 hover:text-white transition-colors"
+                className="py-1.5 bg-white hover:bg-neo-yellow border-2 border-black text-xs font-mono font-black text-black shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] transition-transform"
               >
                 {pct * 100}%
               </button>
@@ -422,42 +422,42 @@ function TradeForm({
               step="0.5"
               value={slippage}
               onChange={(e) => setSlippage(e.target.value)}
-              className="w-full accent-grid-monad cursor-pointer"
+              className="w-full accent-black cursor-pointer"
             />
           </Field>
 
           {/* Fill Estimation Receipt */}
-          <div className="p-3 rounded-lg bg-obsidian border border-white/[0.08] text-xs font-mono space-y-1.5">
+          <div className="p-3.5 border-2 border-black bg-neo-cream shadow-[3px_3px_0px_#000] text-xs font-mono space-y-1.5">
             <div className="flex justify-between">
-              <span className="text-gray-400">Est. Hours Acquired:</span>
-              <span className="font-bold text-white">{fmtNum(est.hours, 4)} h</span>
+              <span className="text-black/70 font-bold">Est. Hours Acquired:</span>
+              <span className="font-black text-black">{fmtNum(est.hours, 4)} h</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Effective Execution Price:</span>
-              <span className="font-bold text-grid-monad">
+              <span className="text-black/70 font-bold">Effective Execution Price:</span>
+              <span className="font-black text-black">
                 {est.avgPrice ? `$${est.avgPrice.toFixed(4)} / hr` : "—"}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Min Guaranteed (Slippage Gate):</span>
-              <span className="text-grid-cyan">{fmtNum(minOut, 4)} h</span>
+              <span className="text-black/70 font-bold">Min Guaranteed (Slippage Gate):</span>
+              <span className="font-black text-black">{fmtNum(minOut, 4)} h</span>
             </div>
             {est.unfilledQuote > 0.0001 && (
-              <div className="text-grid-degraded text-[11px] pt-1 border-t border-white/[0.06]">
+              <div className="text-amber-800 font-bold text-[11px] pt-1 border-t border-black/20">
                 Book depth tight: {est.unfilledQuote.toFixed(2)} gUSD will be refunded (IOC)
               </div>
             )}
           </div>
 
           <Button
-            className="w-full !py-3 font-mono text-sm tracking-wider"
+            className="w-full !py-3.5 font-mono text-sm font-black uppercase tracking-wider bg-neo-yellow hover:bg-neo-yellow/90 text-black border-2 border-black shadow-[3px_3px_0px_#000]"
             onClick={buy}
             loading={pending}
             disabled={!(Number(quote) > 0) || est.hours <= 0}
           >
             ⚡ BUY {symbol} FORWARDS
           </Button>
-          <p className="text-[11px] text-gray-500 font-mono text-center">
+          <p className="text-[11px] text-black/60 font-mono font-medium text-center">
             Signed by Mera Passkey session · Monad 400ms Sub-Second Fill
           </p>
         </div>
@@ -491,14 +491,14 @@ function TradeForm({
 
           <Button
             variant="danger"
-            className="w-full !py-3 font-mono text-sm tracking-wider"
+            className="w-full !py-3.5 font-mono text-sm font-black uppercase tracking-wider"
             onClick={sell}
             loading={pending}
             disabled={!(Number(sellHours) > 0 && Number(sellPrice) > 0)}
           >
             DEPOSIT MARGIN & PLACE ASK
           </Button>
-          <p className="text-[11px] text-gray-500 font-mono text-center">
+          <p className="text-[11px] text-black/60 font-mono font-medium text-center">
             HourTokens deposit to Kuru Margin Account · Post-Only GTC Ask
           </p>
         </div>

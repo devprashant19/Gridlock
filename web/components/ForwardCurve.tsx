@@ -6,7 +6,6 @@ import {
   CartesianGrid,
   Legend,
   Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -21,28 +20,33 @@ const tenor = (symbol: string) => symbol.split("-").slice(1).join("-") || symbol
 export function ForwardCurve({ rows }: { rows: CurveRow[] }) {
   const [viewMode, setViewMode] = useState<"usd" | "basis">("usd");
   const byClass = new Map<string, CurveRow[]>();
-  for (const r of rows) byClass.set(r.series.className, [...(byClass.get(r.series.className) ?? []), r]);
+  for (const r of rows)
+    byClass.set(r.series.className, [...(byClass.get(r.series.className) ?? []), r]);
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center text-xs font-mono">
-        <div className="flex items-center gap-2 text-gray-400">
-          <span className="w-2 h-2 rounded-full bg-grid-monad animate-pulse" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono font-bold">
+        <div className="flex items-center gap-2 text-black uppercase">
+          <span className="w-2.5 h-2.5 bg-black" />
           <span>FORWARD TERM STRUCTURE BY ACCELERATOR CLASS</span>
         </div>
-        <div className="flex rounded-lg bg-surface border border-white/10 p-0.5">
+        <div className="flex border-2 border-black shadow-neo-sm bg-white p-0.5">
           <button
             onClick={() => setViewMode("usd")}
-            className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${
-              viewMode === "usd" ? "bg-grid-monad text-black font-bold" : "text-gray-400 hover:text-white"
+            className={`px-3 py-1 text-xs font-bold font-mono uppercase transition-colors ${
+              viewMode === "usd"
+                ? "bg-neo-yellow text-black border-r-2 border-black font-black"
+                : "text-gray-700 hover:text-black border-r-2 border-black"
             }`}
           >
             PRICE ($/hr)
           </button>
           <button
             onClick={() => setViewMode("basis")}
-            className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${
-              viewMode === "basis" ? "bg-grid-monad text-black font-bold" : "text-gray-400 hover:text-white"
+            className={`px-3 py-1 text-xs font-bold font-mono uppercase transition-colors ${
+              viewMode === "basis"
+                ? "bg-neo-yellow text-black font-black"
+                : "text-gray-700 hover:text-black"
             }`}
           >
             SPREAD (BASIS %)
@@ -50,10 +54,11 @@ export function ForwardCurve({ rows }: { rows: CurveRow[] }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {[...byClass.entries()].map(([cls, rs]) => {
           const data = rs.map((r) => {
-            const basis = r.lastUsd != null && r.spotUsd ? ((r.lastUsd - r.spotUsd) / r.spotUsd) * 100 : 0;
+            const basis =
+              r.lastUsd != null && r.spotUsd ? ((r.lastUsd - r.spotUsd) / r.spotUsd) * 100 : 0;
             return {
               symbol: r.series.symbol,
               tenor: tenor(r.series.symbol),
@@ -73,51 +78,53 @@ export function ForwardCurve({ rows }: { rows: CurveRow[] }) {
           return (
             <div
               key={cls}
-              className="hud-box rounded-xl p-4 sm:p-5 relative overflow-hidden transition-all duration-300 hover:border-grid-monad/40"
+              className="bg-white border-2 border-black shadow-neo p-5 relative overflow-hidden"
             >
-              <div className="flex items-start justify-between mb-3 border-b border-white/[0.06] pb-2.5">
+              <div className="flex items-start justify-between mb-4 border-b-2 border-black pb-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-white text-base tracking-tight">{cls}</h3>
+                    <h3 className="font-black text-black text-lg uppercase tracking-tight">{cls}</h3>
                     <span
-                      className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-bold ${
-                        isDiscount ? "text-grid-pass bg-grid-pass/10 border border-grid-pass/30" : "text-grid-fail bg-grid-fail/10 border border-grid-fail/30"
+                      className={`text-[10px] font-mono px-2 py-0.5 border border-black font-bold uppercase shadow-neo-sm ${
+                        isDiscount ? "bg-neo-green text-black" : "bg-neo-pink text-black"
                       }`}
                     >
                       {latestBasis > 0 ? `+${latestBasis}% PREM` : `${latestBasis}% DISCOUNT`}
                     </span>
                   </div>
-                  <div className="text-[11px] text-gray-400 font-mono mt-0.5">
-                    Ornn Spot Benchmark: ${data[0]?.spot ? data[0].spot.toFixed(2) : "—"} / hr
+                  <div className="text-xs text-gray-700 font-mono font-bold mt-1">
+                    Ornn Spot: ${data[0]?.spot ? data[0].spot.toFixed(2) : "—"} / hr
                   </div>
                 </div>
 
                 <Link
                   href={`/market/${data[0]?.symbol ?? "gT4-NOW"}`}
-                  className="px-2.5 py-1 rounded bg-surface hover:bg-grid-700/80 border border-white/10 hover:border-grid-monad/50 text-[11px] font-mono font-bold text-grid-cyan transition-colors"
+                  className="px-3 py-1 bg-neo-yellow hover:bg-neo-yellowDark border-2 border-black text-xs font-mono font-black uppercase text-black shadow-neo-sm active:translate-x-[1px] active:translate-y-[1px]"
                 >
                   Trade →
                 </Link>
               </div>
 
-              <div className="h-44 sm:h-48 w-full">
+              <div className="h-48 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={data} margin={{ top: 10, right: 12, bottom: 0, left: -14 }}>
                     <defs>
                       <linearGradient id={`grad-${cls.replace(/\s+/g, "")}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#836ef9" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#836ef9" stopOpacity={0.0} />
+                        <stop offset="5%" stopColor="#FEF08A" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="#FEF08A" stopOpacity={0.1} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid stroke="rgba(255, 255, 255, 0.05)" vertical={false} />
-                    <XAxis dataKey="tenor" stroke="#6b7280" fontSize={11} tickLine={false} axisLine={false} />
+                    <CartesianGrid stroke="#E2E8F0" vertical={false} />
+                    <XAxis dataKey="tenor" stroke="#000000" fontSize={11} tickLine={true} axisLine={true} />
                     <YAxis
-                      stroke="#6b7280"
+                      stroke="#000000"
                       fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
+                      tickLine={true}
+                      axisLine={true}
                       domain={viewMode === "usd" ? [Math.max(0, lo - pad), hi + pad] : ["auto", "auto"]}
-                      tickFormatter={(v: number) => (viewMode === "usd" ? `$${v.toFixed(2)}` : `${v > 0 ? "+" : ""}${v}%`)}
+                      tickFormatter={(v: number) =>
+                        viewMode === "usd" ? `$${v.toFixed(2)}` : `${v > 0 ? "+" : ""}${v}%`
+                      }
                       width={52}
                     />
                     <Tooltip
@@ -125,21 +132,21 @@ export function ForwardCurve({ rows }: { rows: CurveRow[] }) {
                         if (active && payload && payload.length) {
                           const item = payload[0].payload;
                           return (
-                            <div className="bg-obsidian/95 border border-white/15 p-2.5 rounded-lg text-xs font-mono shadow-xl space-y-1">
-                              <div className="font-bold text-white text-[11px] border-b border-white/10 pb-1">
+                            <div className="bg-white border-2 border-black p-3 text-xs font-mono shadow-neo space-y-1">
+                              <div className="font-black text-black text-xs border-b-2 border-black pb-1 uppercase">
                                 {item.symbol} ({item.tenor})
                               </div>
-                              <div className="flex justify-between gap-4 text-gray-300">
+                              <div className="flex justify-between gap-4 text-black font-bold">
                                 <span>Kuru Forward:</span>
-                                <span className="font-bold text-grid-monad">${item.kuru?.toFixed(4) ?? "—"} / hr</span>
+                                <span>${item.kuru?.toFixed(4) ?? "—"} / hr</span>
                               </div>
-                              <div className="flex justify-between gap-4 text-gray-400">
+                              <div className="flex justify-between gap-4 text-gray-700">
                                 <span>Spot Index:</span>
                                 <span>${item.spot?.toFixed(4) ?? "—"} / hr</span>
                               </div>
-                              <div className="flex justify-between gap-4 pt-1 border-t border-white/10 font-bold">
+                              <div className="flex justify-between gap-4 pt-1 border-t border-black font-black">
                                 <span>Basis Spread:</span>
-                                <span className={item.basisPct <= 0 ? "text-grid-pass" : "text-grid-fail"}>
+                                <span className={item.basisPct <= 0 ? "text-green-700" : "text-rose-700"}>
                                   {item.basisPct > 0 ? `+${item.basisPct}%` : `${item.basisPct}%`}
                                 </span>
                               </div>
@@ -149,7 +156,7 @@ export function ForwardCurve({ rows }: { rows: CurveRow[] }) {
                         return null;
                       }}
                     />
-                    <Legend wrapperStyle={{ fontSize: 10, fontFamily: "monospace" }} />
+                    <Legend wrapperStyle={{ fontSize: 11, fontFamily: "monospace", color: "#000" }} />
                     <Area
                       type="monotone"
                       dataKey={viewMode === "usd" ? "kuru" : "basisPct"}
@@ -160,19 +167,20 @@ export function ForwardCurve({ rows }: { rows: CurveRow[] }) {
                       type="monotone"
                       dataKey={viewMode === "usd" ? "spot" : undefined}
                       name="Ornn Spot"
-                      stroke="#6b7280"
+                      stroke="#000000"
                       strokeDasharray="4 4"
-                      dot={{ r: 3, fill: "#6b7280" }}
+                      strokeWidth={1.5}
+                      dot={{ r: 3, fill: "#000000" }}
                       connectNulls
                     />
                     <Line
                       type="monotone"
                       dataKey={viewMode === "usd" ? "kuru" : "basisPct"}
                       name="Kuru Forward"
-                      stroke="#836ef9"
-                      strokeWidth={2.5}
-                      dot={{ r: 4, fill: "#00f5d4", stroke: "#836ef9", strokeWidth: 2 }}
-                      activeDot={{ r: 6, fill: "#00f5d4", stroke: "#fff", strokeWidth: 2 }}
+                      stroke="#000000"
+                      strokeWidth={3}
+                      dot={{ r: 4, fill: "#FEF08A", stroke: "#000000", strokeWidth: 2 }}
+                      activeDot={{ r: 6, fill: "#FEF08A", stroke: "#000000", strokeWidth: 2 }}
                       connectNulls
                     />
                   </ComposedChart>

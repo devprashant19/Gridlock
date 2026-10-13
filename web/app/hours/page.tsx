@@ -77,7 +77,7 @@ export default function HoursPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8 text-black">
       <PageTitle
         title="My Compute Hours & Deliveries"
         sub="Redeem onchain HourTokens for bare-metal GPU credentials. Machine passwords and SSH keys return encrypted to your passkey."
@@ -86,42 +86,46 @@ export default function HoursPage() {
       <GasWarning mon={bal.data?.mon} />
 
       <SignInGate what="manage your compute holdings and redemptions">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Inventory Wallet */}
           <Card title="HourToken Inventory (Wallet)">
             {!bal.data ? (
               <Spinner />
             ) : (
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 {SERIES.map((x) => {
                   const count = hoursFromWei(bal.data!.hours[x.symbol]);
                   const isOpen = now >= x.windowStart && now <= x.windowEnd;
                   return (
                     <div
                       key={x.symbol}
-                      className="p-3 rounded-xl bg-obsidian/70 border border-white/[0.06] hover:border-white/15 transition-colors flex justify-between items-center text-xs font-mono"
+                      className="p-4 bg-white border-2 border-black shadow-neo-sm flex justify-between items-center text-xs font-mono"
                     >
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-white text-sm">{x.symbol}</span>
+                          <span className="font-black text-black text-base">{x.symbol}</span>
                           {isOpen ? (
                             <Badge tone="pass">DELIVERY OPEN</Badge>
                           ) : now < x.windowStart ? (
-                            <span className="text-[10px] text-gray-500">Opens {fmtDate(x.windowStart)}</span>
+                            <span className="text-[11px] font-bold text-gray-700 bg-neo-yellow px-1 border border-black">
+                              Opens {fmtDate(x.windowStart)}
+                            </span>
                           ) : (
-                            <span className="text-[10px] text-gray-600">Expired</span>
+                            <span className="text-[11px] font-bold text-gray-500 bg-gray-200 px-1 border border-black">
+                              Expired
+                            </span>
                           )}
                         </div>
-                        <div className="text-[11px] text-gray-400 font-sans">
+                        <div className="text-xs text-gray-700 font-sans font-medium">
                           {x.className} · {fmtDate(x.windowStart)} – {fmtDate(x.windowEnd)}
                         </div>
                       </div>
 
                       <div className="text-right space-y-1">
-                        <div className="text-base font-bold text-grid-cyan">{fmtNum(count)} h</div>
+                        <div className="text-lg font-black text-black">{fmtNum(count)} h</div>
                         <Link
                           href={`/market/${x.symbol}`}
-                          className="text-[11px] text-grid-monad hover:underline font-bold"
+                          className="inline-block px-2.5 py-0.5 bg-neo-yellow hover:bg-neo-yellowDark text-black text-xs font-mono font-bold uppercase border border-black shadow-neo-sm"
                         >
                           Trade on Kuru →
                         </Link>
@@ -135,12 +139,12 @@ export default function HoursPage() {
 
           {/* Machine Redemption Terminal */}
           <Card title="Physical Delivery Redemption Terminal">
-            <p className="text-xs text-gray-400 leading-relaxed">
+            <p className="text-xs text-gray-700 font-medium leading-relaxed">
               Redeeming burns HourTokens and locks the provider in DeliveryEscrow. Your passkey PRF output automatically derives an
               ephemeral X25519 keypair. Its public key is passed to the smart contract, ensuring only your device can decrypt the credentials.
             </p>
 
-            <div className="space-y-3.5">
+            <div className="space-y-4">
               <Field label="Choose Compute Series to Redeem">
                 <select
                   value={symbol}
@@ -172,9 +176,9 @@ export default function HoursPage() {
               </Field>
 
               {session && (
-                <div className="p-2.5 rounded-lg bg-obsidian border border-white/[0.06] text-xs font-mono space-y-1">
-                  <div className="text-[10px] uppercase text-gray-500">Mera Derived Public Key:</div>
-                  <div className="text-grid-cyan break-all text-[11px]">
+                <div className="p-3 bg-[#FFFDF7] border-2 border-black text-xs font-mono space-y-1 shadow-neo-sm">
+                  <div className="text-[11px] uppercase font-bold text-black">Mera Derived Public Key:</div>
+                  <div className="text-black font-bold break-all text-xs bg-white p-2 border border-black">
                     {bytesToHex(session.deliveryKey.publicKey)}
                   </div>
                 </div>
@@ -185,7 +189,7 @@ export default function HoursPage() {
               )}
 
               <Button
-                className="w-full !py-3 tracking-wider font-mono text-sm"
+                className="w-full !py-3 tracking-wider font-mono text-sm bg-neo-yellow hover:bg-neo-yellowDark text-black shadow-neo"
                 onClick={redeem}
                 loading={pending}
                 disabled={!inWindow || !(h >= 1) || h > owned}
@@ -197,7 +201,7 @@ export default function HoursPage() {
         </div>
 
         {/* My Deliveries History */}
-        <Card title="Active & Completed Machine Deliveries" className="mt-6">
+        <Card title="Active & Completed Machine Deliveries" className="mt-8">
           {mine.loading && !mine.data ? (
             <Spinner />
           ) : mine.error ? (
