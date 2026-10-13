@@ -1,0 +1,38 @@
+# Generic Paginated Queries for Gridlock Marketplace
+
+# Paginated Provider Query with filtering
+query GetPaginatedProviders($limit: Int = 10, $offset: Int = 0, $minHours: BigInt = 0) {
+  Provider(
+    where: { hoursDelivered: { _gte: $minHours } }
+    order_by: { hoursDelivered: desc }
+    limit: $limit
+    offset: $offset
+  ) {
+    id
+    name
+    hoursDelivered
+    passes
+    fails
+  }
+}
+
+# Paginated Deliveries Query
+query GetPaginatedDeliveries($limit: Int = 20, $offset: Int = 0, $status: String = "SETTLED") {
+  Delivery(
+    where: { status: { _eq: $status } }
+    order_by: { id: desc }
+    limit: $limit
+    offset: $offset
+  ) {
+    id
+    series {
+      symbol
+    }
+    buyer
+    provider {
+      name
+    }
+    hours
+    verdict
+  }
+}
