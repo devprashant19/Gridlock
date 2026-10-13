@@ -44,7 +44,7 @@ export default function ProviderPage() {
   const rest = queue.data?.filter((d) => d.status !== 1) ?? [];
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8 text-black">
       <PageTitle
         title="Compute Provider Operations Console"
         sub="Register your node, mint forward HourTokens against a 120% collateral bond, and provision bare-metal instances for buyers."
@@ -54,7 +54,7 @@ export default function ProviderPage() {
 
       <SignInGate what="access the compute provider operations console">
         {/* Top Summary Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <StatMetric
             label="Node Status"
             value={prov.data?.registered ? "VERIFIED" : "UNREGISTERED"}
@@ -80,8 +80,8 @@ export default function ProviderPage() {
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="space-y-8">
             <RegisterCard name={prov.data?.name} registered={prov.data?.registered} />
             <MintCard registered={!!prov.data?.registered} gusdBal={bal.data?.gusd} prices={idx.data} />
 
@@ -93,13 +93,13 @@ export default function ProviderPage() {
                   {SERIES.map((s) => (
                     <div
                       key={s.symbol}
-                      className="p-2.5 rounded-lg bg-obsidian/70 border border-white/[0.06] flex justify-between items-center"
+                      className="p-3 bg-white border-2 border-black shadow-neo-sm flex justify-between items-center"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-grid-monad" />
-                        <span className="font-bold text-white">{s.symbol}</span>
+                        <span className="w-2 h-2 bg-black" />
+                        <span className="font-bold text-black">{s.symbol}</span>
                       </div>
-                      <span className="text-gray-300">
+                      <span className="text-black font-bold">
                         {prov.data!.openHours[s.symbol]?.toString() ?? "0"} h unsold
                       </span>
                     </div>
@@ -109,10 +109,10 @@ export default function ProviderPage() {
             </Card>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-8">
             <Card
               title="Deliveries Requiring Provisioning"
-              right={open.length ? <Badge tone="degraded" pulse>{open.length} ACTION DUE</Badge> : undefined}
+              right={open.length ? <Badge tone="degraded">{open.length} ACTION DUE</Badge> : undefined}
             >
               {queue.loading && !queue.data ? (
                 <Spinner />
@@ -148,8 +148,8 @@ function RegisterCard({ name, registered }: { name?: string; registered?: boolea
       right={registered ? <Badge tone="pass">REGISTERED NODE</Badge> : <Badge tone="neutral">NOT REGISTERED</Badge>}
     >
       {registered && (
-        <p className="text-xs text-gray-300 font-mono">
-          Public Leaderboard Handle: <strong className="text-grid-cyan">{name}</strong>
+        <p className="text-xs text-gray-800 font-mono font-bold">
+          Public Leaderboard Handle: <strong className="text-black underline">{name}</strong>
         </p>
       )}
       <div className="flex gap-2">
@@ -252,40 +252,40 @@ function MintCard({
       </div>
 
       {/* Bond Formula Breakdown */}
-      <div className="p-3.5 rounded-xl bg-obsidian border border-white/[0.08] text-xs font-mono space-y-2">
-        <div className="flex justify-between items-center text-gray-400">
+      <div className="p-4 bg-[#FFFDF7] border-2 border-black shadow-neo-sm text-xs font-mono space-y-2">
+        <div className="flex justify-between items-center text-gray-700 font-bold">
           <span>Ornn Spot Index ({s?.className}):</span>
-          <span className="font-bold text-white">
+          <span className="font-black text-black">
             {p ? `$${priceE8ToUsd(p.priceE8).toFixed(4)} / hr` : "Not published"}
           </span>
         </div>
-        <div className="flex justify-between items-center text-gray-400 border-t border-white/[0.06] pt-1.5">
+        <div className="flex justify-between items-center text-gray-700 font-bold border-t-2 border-black pt-2">
           <span>120% Collateral Bond Required:</span>
-          <span className="font-bold text-grid-monad text-sm">
+          <span className="font-black text-black text-sm bg-neo-yellow px-1 border border-black">
             {bond !== undefined ? `${fmtNum(gusd(bond))} gUSD` : "—"}
           </span>
         </div>
-        <div className="flex justify-between items-center text-gray-400">
+        <div className="flex justify-between items-center text-gray-700 font-bold">
           <span>Your gUSD Balance:</span>
-          <span className="text-white">{gusdBal !== undefined ? `${fmtNum(gusd(gusdBal))} gUSD` : "—"}</span>
+          <span className="text-black font-black">{gusdBal !== undefined ? `${fmtNum(gusd(gusdBal))} gUSD` : "—"}</span>
         </div>
       </div>
 
       {!registered && (
-        <p className="text-xs text-grid-degraded font-mono">
+        <p className="text-xs text-black font-mono font-bold bg-neo-yellow p-2 border border-black">
           ⚠ Register your node handle first so buyers recognize your node on the reputation wall.
         </p>
       )}
 
       <Button
-        className="w-full !py-3 tracking-wider font-mono text-sm"
+        className="w-full !py-3 tracking-wider font-mono text-sm bg-neo-yellow hover:bg-neo-yellowDark text-black shadow-neo"
         onClick={mint}
         loading={pending}
         disabled={h < 1n || bond === undefined || (gusdBal !== undefined && bond > gusdBal)}
       >
         ⚡ POST 120% BOND & MINT {h.toString()} HOURTOKENS
       </Button>
-      <p className="text-[11px] text-gray-500 font-mono text-center">
+      <p className="text-[11px] text-gray-600 font-mono text-center font-bold">
         If verifier grades machine below threshold, bond slashes to buyer · Unsold hours reclaimable
       </p>
     </Card>
@@ -327,25 +327,27 @@ function ProvisionForm({ d }: { d: DeliveryView }) {
   };
 
   return (
-    <div className="p-4 rounded-xl bg-obsidian/90 border border-white/10 space-y-3 font-mono text-xs">
-      <div className="flex justify-between items-start gap-2 border-b border-white/[0.06] pb-2.5">
+    <div className="p-5 bg-white border-2 border-black shadow-neo space-y-4 font-mono text-xs">
+      <div className="flex justify-between items-start gap-2 border-b-2 border-black pb-3">
         <div>
-          <div className="font-bold text-white text-sm">
+          <div className="font-black text-black text-sm uppercase">
             Delivery #{d.id} · {s?.symbol}
           </div>
-          <div className="text-[11px] text-gray-400">
+          <div className="text-[11px] text-gray-700 font-bold">
             {d.hours.toString()} GPU-Hours · Bond at Stake:{" "}
-            <span className="text-grid-monad font-bold">{fmtNum(gusd(d.bondAmount))} gUSD</span>
+            <span className="text-black bg-neo-yellow px-1 border border-black font-black">
+              {fmtNum(gusd(d.bondAmount))} gUSD
+            </span>
           </div>
         </div>
-        <Badge tone={left > 0 ? "degraded" : "fail"} pulse={left > 0}>
+        <Badge tone={left > 0 ? "degraded" : "fail"}>
           {left > 0 ? `${fmtDuration(left)} left` : "deadline expired"}
         </Badge>
       </div>
 
       {noKey && <ErrorBox>Buyer posted no encryption public key; credentials cannot be securely delivered.</ErrorBox>}
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-3">
         <div className="col-span-2">
           <Field label="Host / IP">
             <input
@@ -403,14 +405,14 @@ function ProvisionForm({ d }: { d: DeliveryView }) {
       </Field>
 
       <Button
-        className="w-full !py-3 tracking-wider font-mono text-xs"
+        className="w-full !py-3 tracking-wider font-mono text-xs bg-neo-yellow hover:bg-neo-yellowDark text-black shadow-neo"
         onClick={submit}
         loading={pending}
         disabled={noKey || !c.host || !c.keyOrPassword}
       >
         🔒 ENCRYPT TO BUYER&apos;S PASSKEY & BROADCAST PROVISION
       </Button>
-      <p className="text-[10px] text-gray-500 text-center font-mono">
+      <p className="text-[10px] text-gray-600 text-center font-mono font-bold">
         Encrypted with X25519 + ChaCha20-Poly1305. Plaintext credentials never leave this browser.
       </p>
     </div>

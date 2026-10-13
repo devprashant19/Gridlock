@@ -13,24 +13,25 @@ export default function ProvidersPage() {
   const totalDelivered = rows.reduce((acc, r) => acc + (r.hoursDelivered || 0), 0);
   const totalSlashed = rows.reduce((acc, r) => acc + (r.slashed || 0), 0);
   const totalPasses = rows.reduce((acc, r) => acc + (r.passes || 0), 0);
-  const totalSessions = rows.reduce((acc, r) => acc + r.passes + r.degraded + r.fails + r.timeouts, 0);
+  const totalSessions = rows.reduce(
+    (acc, r) => acc + r.passes + r.degraded + r.fails + r.timeouts,
+    0
+  );
   const netPassRate = totalSessions > 0 ? ((totalPasses / totalSessions) * 100).toFixed(1) : "100.0";
 
   const sourceBadge =
     lb.data?.source === "envio" ? (
-      <Badge tone="pass" pulse>
-        Envio Indexer · Live 400ms
-      </Badge>
+      <Badge tone="pass">Envio Indexer · Live 400ms</Badge>
     ) : lb.data?.source === "chain" ? (
       <Badge tone="degraded">
-        {ENVIO_GRAPHQL ? "Envio Reconnecting · Direct Chain Reads" : "Direct RPC Chain Reads"}
+        {ENVIO_GRAPHQL ? "Envio Reconnecting · Direct RPC" : "Direct RPC Chain Reads"}
       </Badge>
     ) : lb.data ? (
       <Badge tone="neutral">Preview Data Mode</Badge>
     ) : undefined;
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8 text-black">
       <PageTitle
         title="Compute Provider Reputation Wall"
         sub="Node reputation is derived strictly from cryptographic hardware verifier verdicts settled on Monad. Ranked by zero fail history, then total verified compute hours."
@@ -39,7 +40,7 @@ export default function ProvidersPage() {
       <MockBanner />
 
       {/* Network Health Metrics */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatMetric
           label="Network Reliability"
           value={`${netPassRate}%`}
@@ -75,74 +76,86 @@ export default function ProvidersPage() {
         ) : (
           <div className="overflow-x-auto -mx-4 sm:mx-0 sleek-scroll">
             <table className="w-full text-left text-xs sm:text-sm min-w-[760px] font-tabular">
-              <thead className="text-gray-400 text-[11px] font-mono uppercase tracking-wider border-b border-white/[0.08] bg-obsidian/40">
+              <thead className="text-black text-xs font-mono font-black uppercase tracking-wider border-b-2 border-black bg-neo-yellow">
                 <tr>
-                  <th className="p-3.5 text-center">Rank</th>
-                  <th className="p-3.5">Provider Node Identity</th>
-                  <th className="p-3.5 text-center">Pass (100%)</th>
-                  <th className="p-3.5 text-center">Degraded (30%)</th>
-                  <th className="p-3.5 text-center">Fail (Slashed)</th>
-                  <th className="p-3.5 text-center">No-Show</th>
-                  <th className="p-3.5 text-right">Reliability Bar</th>
-                  <th className="p-3.5 text-right">Hours Delivered</th>
+                  <th className="p-3.5 text-center border-r border-black">Rank</th>
+                  <th className="p-3.5 border-r border-black">Provider Node Identity</th>
+                  <th className="p-3.5 text-center border-r border-black">Pass (100%)</th>
+                  <th className="p-3.5 text-center border-r border-black">Degraded (30%)</th>
+                  <th className="p-3.5 text-center border-r border-black">Fail (Slashed)</th>
+                  <th className="p-3.5 text-center border-r border-black">No-Show</th>
+                  <th className="p-3.5 text-right border-r border-black">Reliability</th>
+                  <th className="p-3.5 text-right border-r border-black">Hours Delivered</th>
                   <th className="p-3.5 text-right">Slashed Penalty</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.06]">
+              <tbody className="divide-y-2 divide-black">
                 {rows.map((p, i) => {
                   const total = p.passes + p.degraded + p.fails + p.timeouts;
                   const rate = total ? (p.passes / total) * 100 : null;
                   const rankBadge =
-                    i === 0
-                      ? "🥇"
-                      : i === 1
-                      ? "🥈"
-                      : i === 2
-                      ? "🥉"
-                      : `#${i + 1}`;
+                    i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`;
 
                   return (
-                    <tr key={p.address} className="hover:bg-white/[0.03] transition-colors">
-                      <td className="p-3.5 text-center font-mono font-bold text-white text-sm">
+                    <tr key={p.address} className="hover:bg-neutral-50 transition-colors">
+                      <td className="p-3.5 text-center font-mono font-black text-black text-sm border-r border-black">
                         {rankBadge}
                       </td>
-                      <td className="p-3.5 space-y-0.5">
-                        <div className="font-bold text-white text-sm flex items-center gap-1.5">
+                      <td className="p-3.5 space-y-0.5 border-r border-black">
+                        <div className="font-black text-black text-sm flex items-center gap-1.5">
                           <span>{p.name || "Unnamed Provider"}</span>
-                          {i === 0 && <span className="text-[10px] text-grid-cyan font-mono">[TOP NODE]</span>}
+                          {i === 0 && (
+                            <span className="text-[10px] bg-neo-yellow px-1 border border-black font-mono font-bold">
+                              TOP NODE
+                            </span>
+                          )}
                         </div>
                         <a
                           href={addressUrl(p.address)}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-[11px] font-mono text-gray-500 hover:text-grid-cyan transition-colors"
+                          className="text-xs font-mono text-gray-700 hover:text-black underline"
                         >
                           {shortAddr(p.address)} ↗
                         </a>
                       </td>
-                      <td className="p-3.5 text-center text-grid-pass font-mono font-bold">{p.passes}</td>
-                      <td className="p-3.5 text-center text-grid-degraded font-mono font-bold">{p.degraded}</td>
-                      <td className="p-3.5 text-center text-grid-fail font-mono font-bold">{p.fails}</td>
-                      <td className="p-3.5 text-center text-gray-500 font-mono">{p.timeouts}</td>
-                      <td className="p-3.5 text-right">
+                      <td className="p-3.5 text-center font-mono font-bold text-black border-r border-black">
+                        <span className="px-2 py-0.5 bg-neo-green border border-black shadow-neo-sm">
+                          {p.passes}
+                        </span>
+                      </td>
+                      <td className="p-3.5 text-center font-mono font-bold text-black border-r border-black">
+                        <span className="px-2 py-0.5 bg-neo-yellow border border-black shadow-neo-sm">
+                          {p.degraded}
+                        </span>
+                      </td>
+                      <td className="p-3.5 text-center font-mono font-bold text-black border-r border-black">
+                        <span className="px-2 py-0.5 bg-neo-pink border border-black shadow-neo-sm">
+                          {p.fails}
+                        </span>
+                      </td>
+                      <td className="p-3.5 text-center text-gray-700 font-mono font-bold border-r border-black">
+                        {p.timeouts}
+                      </td>
+                      <td className="p-3.5 text-right border-r border-black">
                         <div className="flex items-center justify-end gap-2">
-                          <div className="w-16 h-1.5 bg-black/60 rounded-full overflow-hidden border border-white/10 hidden sm:block">
+                          <div className="w-16 h-2 bg-white border border-black overflow-hidden hidden sm:block">
                             <div
-                              className="h-full bg-grid-pass rounded-full"
+                              className="h-full bg-neo-green"
                               style={{ width: `${rate ?? 0}%` }}
                             />
                           </div>
-                          <span className="font-mono font-bold text-white text-xs">
+                          <span className="font-mono font-black text-black text-xs">
                             {rate == null ? "—" : `${rate.toFixed(0)}%`}
                           </span>
                         </div>
                       </td>
-                      <td className="p-3.5 text-right font-mono text-gray-300 font-medium">
+                      <td className="p-3.5 text-right font-mono text-black font-bold border-r border-black">
                         {fmtNum(p.hoursDelivered, 0)} h
                       </td>
                       <td
-                        className={`p-3.5 text-right font-mono font-bold ${
-                          p.slashed > 0 ? "text-grid-fail" : "text-gray-500"
+                        className={`p-3.5 text-right font-mono font-black ${
+                          p.slashed > 0 ? "text-rose-700" : "text-gray-600"
                         }`}
                       >
                         {fmtNum(p.slashed)} gUSD

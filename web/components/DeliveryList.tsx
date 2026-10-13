@@ -30,39 +30,38 @@ export function DeliveryList({
   if (!items.length) return <Empty>{empty}</Empty>;
 
   return (
-    <ul className="divide-y divide-white/[0.06] font-tabular">
+    <ul className="divide-y-2 divide-black font-tabular">
       {items.map((d) => {
         const left = d.deadline * 1000 - now;
         const s = seriesById(d.seriesId);
         return (
           <li
             key={d.id}
-            className="py-3.5 px-3 -mx-3 rounded-xl transition-all duration-150 hover:bg-white/[0.03] flex flex-wrap items-center justify-between gap-3 group"
+            className="py-4 px-3 -mx-3 hover:bg-neutral-50 transition-colors flex flex-wrap items-center justify-between gap-3 group"
           >
-            <Link href={`/delivery/${d.id}`} className="min-w-0 flex-1 space-y-0.5">
-              <div className="font-bold text-white text-sm font-mono flex items-center gap-2 group-hover:text-grid-monad transition-colors">
-                <span className="w-1.5 h-1.5 rounded-full bg-grid-monad" />
+            <Link href={`/delivery/${d.id}`} className="min-w-0 flex-1 space-y-1">
+              <div className="font-black text-black text-sm font-mono flex items-center gap-2 group-hover:underline">
+                <span className="w-2 h-2 bg-black" />
                 <span>
                   Delivery #{d.id} · {s?.symbol ?? `series ${d.seriesId}`}
                 </span>
-                <span className="text-gray-500 font-normal text-xs">({s?.className ?? "GPU"})</span>
+                <span className="text-gray-600 font-bold text-xs">({s?.className ?? "GPU"})</span>
               </div>
-              <div className="text-xs text-gray-400 font-mono flex flex-wrap items-center gap-2">
-                <span className="text-white font-semibold">{d.hours.toString()} GPU-Hours</span>
-                <span className="text-gray-600">·</span>
+              <div className="text-xs text-gray-700 font-mono flex flex-wrap items-center gap-2">
+                <span className="text-black font-bold">{d.hours.toString()} GPU-Hours</span>
+                <span>·</span>
                 {d.status === 1 && (
-                  <span className={left > 0 ? "text-grid-degraded" : "text-grid-fail"}>
+                  <span className={left > 0 ? "text-amber-700 font-bold" : "text-rose-700 font-bold"}>
                     {left > 0 ? `Provision deadline: ${fmtDuration(left)} left` : "Provision deadline expired"}
                   </span>
                 )}
                 {d.status === 2 && (
-                  <span className="text-grid-cyan flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-grid-cyan animate-pulse" />
+                  <span className="text-black font-bold bg-neo-blue px-1 border border-black">
                     In-pod verifier executing challenge
                   </span>
                 )}
                 {d.status === 3 && d.tflopsE2 > 0 && (
-                  <span className="text-gray-300">Measured: {(d.tflopsE2 / 100).toFixed(2)} TFLOPS</span>
+                  <span className="text-black font-bold">Measured: {(d.tflopsE2 / 100).toFixed(2)} TFLOPS</span>
                 )}
               </div>
             </Link>
@@ -74,7 +73,7 @@ export function DeliveryList({
               {action?.(d)}
               <Link
                 href={`/delivery/${d.id}`}
-                className="text-gray-500 group-hover:text-white transition-colors text-sm font-mono pl-1"
+                className="w-7 h-7 bg-white border-2 border-black shadow-neo-sm flex items-center justify-center text-black font-bold text-xs hover:bg-neo-yellow transition-colors"
               >
                 →
               </Link>
