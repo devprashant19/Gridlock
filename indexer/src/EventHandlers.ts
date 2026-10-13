@@ -93,4 +93,46 @@ indexer.onEvent(
   }
 );
 
+// DeliveryRequested handler
+indexer.onEvent(
+  { contract: "DeliveryEscrow", event: "DeliveryRequested" },
+  async ({ event, context }) => {
+    const deliveryId = event.params.deliveryId.toString();
+    const seriesId = event.params.seriesId.toString();
+    const buyer = event.params.buyer.toLowerCase();
+    const providerId = event.params.provider.toLowerCase();
+
+    // Ensure provider entity exists if assigned
+    const provider = await context.Provider.get(providerId);
+    if (!provider) {
+      context.Provider.set({
+        id: providerId,
+        name: `Provider-${providerId.slice(0, 6)}`,
+        minted: 0n,
+        passes: 0,
+        degraded: 0,
+        fails: 0,
+        timeouts: 0,
+        hoursDelivered: 0n,
+        slashedTotal: 0n,
+      });
+    }
+
+    // Create delivery record
+    context.Delivery.set({
+      id: deliveryId,
+      series_id: seriesId,
+      buyer: buyer,
+      provider_id: providerId,
+      hours: event.params.hours_,
+      status: "REQUESTED",
+      verdict: undefined,
+      tflopsE2: undefined,
+      toBuyer: undefined,
+      toProvider: undefined,
+    });
+  }
+);
+
+
 
