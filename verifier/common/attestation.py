@@ -41,13 +41,13 @@ class HardwareAttestationReport:
         self.timestamp = int(time.time())
 
         # PCR0: Driver & Toolchain environment measurement
-        self.pcr0 = hashlib.sha256(f"{self.driver_version}:{self.cuda_version}".encode()).hexdigest()
+        self.pcr0 = "0x" + hashlib.sha256(f"{self.driver_version}:{self.cuda_version}".encode()).hexdigest()
 
         # PCR1: Kernel & OS environment measurement
-        self.pcr1 = hashlib.sha256(f"{self.kernel_release}:{platform.system()}".encode()).hexdigest()
+        self.pcr1 = "0x" + hashlib.sha256(f"{self.kernel_release}:{platform.system()}".encode()).hexdigest()
 
         # PCR2: Physical Hardware Identity measurement
-        self.pcr2 = hashlib.sha256(f"{self.device_name}:{self.device_uuid}:{self.sm_count}".encode()).hexdigest()
+        self.pcr2 = "0x" + hashlib.sha256(f"{self.device_name}:{self.device_uuid}:{self.sm_count}".encode()).hexdigest()
 
         # Master Attestation Hash (composite digest of all PCRs)
         composite = f"{self.pcr0}:{self.pcr1}:{self.pcr2}:{self.timestamp}".encode()
@@ -64,9 +64,9 @@ class HardwareAttestationReport:
             "kernel_release": self.kernel_release,
             "device_uuid": self.device_uuid,
             "timestamp": self.timestamp,
-            "pcr0": "0x" + self.pcr0,
-            "pcr1": "0x" + self.pcr1,
-            "pcr2": "0x" + self.pcr2,
+            "pcr0": self.pcr0,
+            "pcr1": self.pcr1,
+            "pcr2": self.pcr2,
             "attestation_hash": self.attestation_hash,
         }
 
