@@ -1,20 +1,42 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { fetchProviderLeaderboard, ProviderRecord } from "../../lib/envio";
+
+const FALLBACK_PROVIDERS = [
+  { name: "HyperNode-Bangalore", passes: 24, degraded: 1, fails: 0, slashedTotal: "0.00", hoursDelivered: "142" },
+  { name: "MonadGPU-Alpha", passes: 19, degraded: 0, fails: 0, slashedTotal: "0.00", hoursDelivered: "96" },
+  { name: "FastCloud-Delhi", passes: 12, degraded: 3, fails: 1, slashedTotal: "4.20", hoursDelivered: "58" },
+  { name: "Rogue-Compute", passes: 2, degraded: 1, fails: 4, slashedTotal: "16.80", hoursDelivered: "14" },
+];
 
 export default function ProvidersLeaderboardPage() {
-  const providers = [
-    { name: "HyperNode-Bangalore", passes: 24, degraded: 1, fails: 0, slashedTotal: "0.00", hoursDelivered: 142 },
-    { name: "MonadGPU-Alpha", passes: 19, degraded: 0, fails: 0, slashedTotal: "0.00", hoursDelivered: 96 },
-    { name: "FastCloud-Delhi", passes: 12, degraded: 3, fails: 1, slashedTotal: "4.20", hoursDelivered: 58 },
-    { name: "Rogue-Compute", passes: 2, degraded: 1, fails: 4, slashedTotal: "16.80", hoursDelivered: 14 },
-  ];
+  const [providers, setProviders] = useState(FALLBACK_PROVIDERS);
+  const [isLive, setIsLive] = useState(false);
+
+  useEffect(() => {
+    async function load() {
+      const data = await fetchProviderLeaderboard();
+      if (data && data.length > 0) {
+        setProviders(data);
+        setIsLive(true);
+      }
+    }
+    load();
+  }, []);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Provider Reputation Leaderboard</h1>
-        <p className="text-gray-400 text-sm">Indexed in real-time by Envio from DeliveryEscrow events on Monad</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Provider Reputation Leaderboard</h1>
+          <p className="text-gray-400 text-sm">Indexed in real-time by Envio from DeliveryEscrow events on Monad</p>
+        </div>
+        {isLive && (
+          <span className="px-3 py-1 bg-grid-pass/20 text-grid-pass text-xs font-semibold rounded-full border border-grid-pass/30 animate-pulse">
+            Live Envio GraphQL
+          </span>
+        )}
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-grid-700 bg-grid-800/50">
