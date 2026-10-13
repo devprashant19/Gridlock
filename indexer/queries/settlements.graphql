@@ -1,0 +1,41 @@
+# Query settled deliveries with verdict and bond distribution
+query GetSettlements($limit: Int = 50, $offset: Int = 0) {
+  Delivery(
+    where: { status: { _in: ["SETTLED", "TIMEOUT"] } }
+    order_by: { id: desc }
+    limit: $limit
+    offset: $offset
+  ) {
+    id
+    series {
+      id
+      symbol
+    }
+    buyer
+    provider {
+      id
+      name
+    }
+    hours
+    status
+    verdict
+    tflopsE2
+    toBuyer
+    toProvider
+  }
+}
+
+# Query settlements filtered by verdict code (1=PASS, 2=DEGRADED, 3=FAIL)
+query GetSettlementsByVerdict($verdict: Int!) {
+  Delivery(
+    where: { verdict: { _eq: $verdict } }
+    order_by: { id: desc }
+  ) {
+    id
+    hours
+    verdict
+    tflopsE2
+    toBuyer
+    toProvider
+  }
+}
