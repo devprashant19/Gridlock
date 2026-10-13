@@ -105,7 +105,7 @@ export function Header() {
 }
 
 function AuthButton() {
-  const { session, busy, error, storedPasskey, signIn, signUp, signOut, spentGusd } = useWallet();
+  const { session, busy, error, storedPasskey, signIn, signInDemo, signUp, signOut, spentGusd } = useWallet();
   const [open, setOpen] = useState(false);
   const [label, setLabel] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -238,13 +238,23 @@ function AuthButton() {
                 </p>
               </div>
 
-              <button
-                onClick={() => signIn()}
-                disabled={busy}
-                className="w-full py-2.5 bg-neo-yellow hover:bg-neo-yellowDark text-black font-mono font-black text-xs uppercase border-2 border-black shadow-neo-sm transition-all disabled:opacity-50"
-              >
-                TOUCH ID / PASSKEY SIGN IN
-              </button>
+              <div className="space-y-2">
+                <button
+                  onClick={() => signIn()}
+                  disabled={busy}
+                  className="w-full py-2.5 bg-neo-yellow hover:bg-neo-yellowDark text-black font-mono font-black text-xs uppercase border-2 border-black shadow-neo-sm transition-all disabled:opacity-50"
+                >
+                  TOUCH ID / PASSKEY SIGN IN
+                </button>
+                <button
+                  type="button"
+                  onClick={() => signInDemo()}
+                  disabled={busy}
+                  className="w-full py-2 bg-neo-cream hover:bg-neo-yellow text-black font-mono font-black text-xs uppercase border-2 border-black shadow-neo-sm transition-all disabled:opacity-50"
+                >
+                  ⚡ 1-Click Instant Demo Login (Bypass WebAuthn)
+                </button>
+              </div>
 
               <div className="border-t-2 border-black pt-3 space-y-2">
                 <div className="text-xs font-mono font-bold text-black uppercase">

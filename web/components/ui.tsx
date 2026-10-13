@@ -272,7 +272,7 @@ export function SignInGate({
   children: ReactNode;
   what?: string;
 }) {
-  const { session, signIn, busy } = useWallet();
+  const { session, signIn, signInDemo, busy } = useWallet();
   if (session) return <>{children}</>;
   return (
     <div className="p-6 bg-white border-2 border-black shadow-neo text-center space-y-3 relative overflow-hidden">
@@ -287,9 +287,19 @@ export function SignInGate({
           Sign in with your biometric passkey to {what}. One prompt creates a scoped, trading-only session with zero extension popups.
         </p>
       </div>
-      <Button onClick={() => signIn()} loading={busy} className="!py-2.5 !px-6">
-        Sign in with Passkey
-      </Button>
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-1">
+        <Button onClick={() => signIn()} loading={busy} className="!py-2.5 !px-6">
+          Sign in with Passkey
+        </Button>
+        <button
+          type="button"
+          onClick={() => signInDemo()}
+          disabled={busy}
+          className="py-2.5 px-4 bg-neo-cream hover:bg-neo-yellow border-2 border-black font-mono font-black text-xs uppercase shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all"
+        >
+          ⚡ 1-Click Instant Demo Login
+        </button>
+      </div>
     </div>
   );
 }

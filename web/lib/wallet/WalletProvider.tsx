@@ -37,6 +37,7 @@ type WalletState = {
   txNonce: number;
   signUp: (label: string) => Promise<void>;
   signIn: (opts?: { anyPasskey?: boolean }) => Promise<void>;
+  signInDemo: () => Promise<void>;
   signOut: () => void;
   bumpTx: () => void;
   spentGusd: number;
@@ -173,6 +174,20 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     [start],
   );
 
+  const signInDemo = useCallback(async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const demoSeed = new Uint8Array(32);
+      for (let i = 0; i < 32; i++) demoSeed[i] = (i * 11 + 42) % 256;
+      await start(demoSeed, "demo-passkey-prf-0x1");
+    } catch (e) {
+      setError(friendlyError(e));
+    } finally {
+      setBusy(false);
+    }
+  }, [start]);
+
   const signOut = useCallback(() => {
     endRef.current();
     endRef.current = () => {};
@@ -190,11 +205,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       txNonce,
       signUp,
       signIn,
+      signInDemo,
       signOut,
       bumpTx,
       spentGusd: session ? Number(session.scope.spentRaw) / 1e6 : 0,
     }),
-    [session, busy, error, storedPasskey, txNonce, signUp, signIn, signOut, bumpTx],
+    [session, busy, error, storedPasskey, txNonce, signUp, signIn, signInDemo, signOut, bumpTx],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
