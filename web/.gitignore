@@ -1,0 +1,4 @@
+# root .gitignore ignores Python lib/ dirs; our TS lib must be tracked
+!/lib/
+next-env.d.ts
+*.tsbuildinfo

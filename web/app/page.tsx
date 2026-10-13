@@ -1,106 +1,128 @@
 "use client";
 
-import React, { useState } from "react";
-import { DEPLOYMENTS } from "../lib/contracts";
+import Link from "next/link";
+import { gridUsdAbi } from "@/lib/abis";
+import { CONTRACTS, GPU_CLASSES, IS_MOCK } from "@/lib/config";
+import { readBalances, readForwardCurve } from "@/lib/data";
+import { fmtDate, fmtUsd, gusd } from "@/lib/format";
+import { usePoll, useTx } from "@/lib/hooks";
+import { useWallet } from "@/lib/wallet/WalletProvider";
+import { ForwardCurve } from "@/components/ForwardCurve";
+import { Badge, Button, Card, ErrorBox, GasWarning, MockBanner, Spinner } from "@/components/ui";
 
 export default function HomePage() {
-  const [faucetLoading, setFaucetLoading] = useState(false);
-  const [faucetMsg, setFaucetMsg] = useState("");
+  const { session, signIn, busy } = useWallet();
+  const { write, pending } = useTx();
+  const curve = usePoll(readForwardCurve, [], 15000);
+  const bal = usePoll(() => (session ? readBalances(session.address) : Promise.resolve(undefined)), [session?.address], 15000);
 
-  const handleFaucet = async () => {
-    setFaucetLoading(true);
-    setFaucetMsg("Requesting 1,000 gUSD faucet...");
-    setTimeout(() => {
-      setFaucetLoading(false);
-      setFaucetMsg("Success: 1,000 gUSD minted to your active wallet!");
-    }, 1200);
-  };
+  const faucet = () =>
+    write("Claim 1,000 gUSD", { address: CONTRACTS.gridUSD, abi: gridUsdAbi, functionName: "faucet" }).catch(() => {});
 
   return (
-    <div className="space-y-8">
-      {/* Hero */}
-      <div className="bg-gradient-to-r from-grid-800 to-grid-700/60 p-8 rounded-2xl border border-grid-700 relative overflow-hidden">
+    <>
+      <div className="bg-gradient-to-br from-grid-800 to-grid-700/50 p-6 sm:p-8 rounded-2xl border border-grid-700">
         <div className="max-w-2xl space-y-4">
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-medium bg-grid-monad/20 text-grid-monad border border-grid-monad/30">
-            <span>Live on Monad Testnet</span>
-          </div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
-            Physically Delivered GPU Forwards
-          </h1>
-          <p className="text-gray-300 text-lg leading-relaxed">
-            Lock compute costs before price spikes. Providers mint against a 120% bond.
-            If GPU verification fails in the pod, the bond is automatically slashed to you in a single block.
+          <Badge tone="monad">Live on Monad Testnet</Badge>
+          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight">Physically delivered GPU forwards</h1>
+          <p className="text-gray-300 sm:text-lg leading-relaxed">
+            Lock in compute before prices spike. Providers mint GPU-hours against a 120% bond and sell them on a Kuru order book. If
+            the in-pod verifier fails the machine, the bond is slashed to you in one block.
           </p>
-          <div className="flex flex-wrap gap-4 pt-2">
-            <a
-              href="/market/gT4-NOW"
-              className="px-6 py-3 rounded-xl bg-grid-monad text-black font-semibold hover:opacity-95 transition shadow-lg shadow-grid-monad/20"
-            >
-              Trade on Kuru Order Book &rarr;
-            </a>
-            <button
-              onClick={handleFaucet}
-              disabled={faucetLoading}
-              className="px-6 py-3 rounded-xl bg-grid-700 text-white font-medium hover:bg-grid-600 border border-gray-600 transition"
-            >
-              {faucetLoading ? "Minting..." : "Claim 1,000 gUSD Faucet"}
-            </button>
+          <div className="flex flex-wrap gap-3 pt-1">
+            <Link href="/market/gT4-NOW" className="px-5 py-3 rounded-xl bg-grid-monad text-black font-semibold hover:opacity-90">
+              Trade on Kuru →
+            </Link>
+            {session ? (
+              <Button variant="ghost" onClick={faucet} loading={pending} disabled={IS_MOCK} className="!py-3 !rounded-xl">
+                Claim 1,000 gUSD faucet
+              </Button>
+            ) : (
+              <Button variant="ghost" onClick={() => signIn()} loading={busy} className="!py-3 !rounded-xl">
+                Passkey sign in
+              </Button>
+            )}
           </div>
-          {faucetMsg && <p className="text-xs text-grid-pass mt-2">{faucetMsg}</p>}
+          {session && bal.data && (
+            <p className="text-sm text-gray-400">
+              Balance: <span className="text-white font-mono">{gusd(bal.data.gusd).toFixed(2)} gUSD</span>
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Demo Warning Banner */}
-      <div className="p-4 rounded-xl bg-purple-950/40 border border-purple-800/60 flex items-center justify-between text-sm">
-        <div className="flex items-center space-x-3 text-purple-200">
-          <span className="font-bold text-xs uppercase px-2 py-0.5 rounded bg-purple-800 text-white">Demo Mode</span>
-          <span><strong className="text-white">gT4-NOW</strong> series uses fixed $0.35/hr reference price for instant live verification in free Colab T4 pods.</span>
-        </div>
+      <GasWarning mon={bal.data?.mon} />
+      <MockBanner />
+
+      <div className="p-3 sm:p-4 rounded-xl bg-purple-950/40 border border-purple-800/60 text-sm text-purple-200 flex gap-3 items-start">
+        <span className="font-bold text-[10px] uppercase px-2 py-0.5 rounded bg-purple-800 text-white shrink-0 mt-0.5">Demo mode</span>
+        <span>
+          <strong className="text-white">gT4-NOW</strong> uses a fixed ${GPU_CLASSES.T4?.referencePriceUsd.toFixed(2)}/hr reference price so it
+          can be delivered and verified live on a free Colab T4. The other series track the Ornn index via Chainlink CRE.
+        </span>
       </div>
 
-      {/* Forward Curve Table */}
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold">Active Forward Curve</h2>
-        <div className="overflow-x-auto rounded-xl border border-grid-700 bg-grid-800/50">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-grid-800 text-gray-400 text-xs uppercase border-b border-grid-700">
+      <div className="space-y-3">
+        <div className="flex items-end justify-between gap-3">
+          <h2 className="text-xl sm:text-2xl font-bold">Forward curve</h2>
+          {curve.data && <span className="text-xs text-gray-500">source: {curve.data.source}</span>}
+        </div>
+        {curve.loading && !curve.data ? (
+          <Spinner />
+        ) : curve.error && !curve.data ? (
+          <ErrorBox>Couldn&apos;t load the curve: {curve.error}</ErrorBox>
+        ) : (
+          curve.data && <ForwardCurve rows={curve.data.rows} />
+        )}
+      </div>
+
+      <Card title="Series">
+        <div className="overflow-x-auto -mx-4 sm:mx-0">
+          <table className="w-full text-left text-sm min-w-[640px]">
+            <thead className="text-gray-400 text-xs uppercase border-b border-grid-700">
               <tr>
-                <th className="p-4">Series Symbol</th>
-                <th className="p-4">GPU Class</th>
-                <th className="p-4">Delivery Window</th>
-                <th className="p-4">Spot Index</th>
-                <th className="p-4">Bond Req.</th>
-                <th className="p-4 text-right">Action</th>
+                <th className="p-3">Series</th>
+                <th className="p-3">GPU</th>
+                <th className="p-3">Delivery window</th>
+                <th className="p-3 text-right">Spot index</th>
+                <th className="p-3 text-right">Kuru</th>
+                <th className="p-3 text-right">Basis</th>
+                <th className="p-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-grid-700">
-              {Object.entries(DEPLOYMENTS.series).map(([symbol, item]) => (
-                <tr key={symbol} className="hover:bg-grid-700/40 transition">
-                  <td className="p-4 font-semibold text-white">{symbol}</td>
-                  <td className="p-4 text-gray-300">
-                    {symbol.includes("T4") ? "Tesla T4 (FP16 8.1 TF)" : symbol.includes("H100") ? "H100 SXM (FP16 989 TF)" : "A100 SXM4 (FP16 312 TF)"}
-                  </td>
-                  <td className="p-4 text-gray-400">
-                    {new Date(item.windowStart * 1000).toLocaleDateString()} &ndash; {new Date(item.windowEnd * 1000).toLocaleDateString()}
-                  </td>
-                  <td className="p-4 text-white font-mono">
-                    {symbol.includes("T4") ? "$0.35 / hr" : symbol.includes("H100") ? "$2.65 / hr" : "$1.80 / hr"}
-                  </td>
-                  <td className="p-4 text-grid-monad font-medium">120% gUSD</td>
-                  <td className="p-4 text-right">
-                    <a
-                      href={`/market/${symbol}`}
-                      className="inline-block px-4 py-1.5 rounded-lg bg-grid-700 hover:bg-grid-600 text-xs font-semibold text-white border border-gray-600 transition"
-                    >
-                      Trade &rarr;
-                    </a>
-                  </td>
-                </tr>
-              ))}
+              {(curve.data?.rows ?? []).map((r) => {
+                const basis = r.lastUsd != null && r.spotUsd ? (r.lastUsd / r.spotUsd - 1) * 100 : null;
+                return (
+                  <tr key={r.series.symbol} className="hover:bg-grid-700/30">
+                    <td className="p-3 font-semibold">{r.series.symbol}</td>
+                    <td className="p-3 text-gray-300">
+                      {r.series.className}
+                      <span className="text-gray-500"> · {GPU_CLASSES[r.series.className]?.ratedTflops ?? "?"} TF</span>
+                    </td>
+                    <td className="p-3 text-gray-400">
+                      {fmtDate(r.series.windowStart)} – {fmtDate(r.series.windowEnd)}
+                    </td>
+                    <td className="p-3 text-right font-mono">{r.spotUsd != null ? fmtUsd(r.spotUsd, 3) : "—"}</td>
+                    <td className="p-3 text-right font-mono text-grid-monad">{r.lastUsd != null ? fmtUsd(r.lastUsd, 3) : "—"}</td>
+                    <td className={`p-3 text-right font-mono ${basis == null ? "text-gray-500" : basis >= 0 ? "text-grid-pass" : "text-grid-fail"}`}>
+                      {basis == null ? "—" : `${basis >= 0 ? "+" : ""}${basis.toFixed(1)}%`}
+                    </td>
+                    <td className="p-3 text-right">
+                      <Link
+                        href={`/market/${r.series.symbol}`}
+                        className="inline-block px-3 py-1.5 rounded-lg bg-grid-700 hover:bg-grid-600 text-xs font-semibold border border-grid-600"
+                      >
+                        Trade →
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
-      </div>
-    </div>
+      </Card>
+    </>
   );
 }
