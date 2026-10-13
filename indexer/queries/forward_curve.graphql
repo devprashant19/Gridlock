@@ -1,0 +1,23 @@
+# Forward Curve & Oracle Price Publication Query
+# Retrieves active series alongside chronological index prints per GPU class
+query GetForwardCurveAndPrices($gpuClass: String!, $limit: Int = 30) {
+  Series(where: { gpuClass: { _eq: $gpuClass } }, order_by: { id: asc }) {
+    id
+    symbol
+    gpuClass
+    token
+    market
+    lastPrice
+    openHours
+  }
+  IndexPrint(
+    where: { gpuClass: { _eq: $gpuClass } }
+    order_by: { dayKey: desc }
+    limit: $limit
+  ) {
+    id
+    gpuClass
+    dayKey
+    priceE8
+  }
+}
