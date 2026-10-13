@@ -305,15 +305,25 @@ contract DeliveryEscrow {
         emit TimeoutClaimed(deliveryId, toBuyer, toProvider);
     }
 
-    function withdrawUnsold(uint256 seriesId, uint256 hours_) external {
+    function withdrawUnsold(uint256 seriesId) external {
+        uint256 hours_ = openHours[seriesId][msg.sender];
+        require(hours_ > 0, "No open hours to withdraw");
+        withdrawUnsold(seriesId, hours_);
+    }
+
+    function withdrawUnsold(uint256 seriesId, uint256 hours_) public {
+        require(hours_ > 0, "Hours must be > 0");
         (, address token, , uint64 windowEnd, ) = factory.series(seriesId);
         require(block.timestamp > windowEnd, "Series window has not ended");
         require(openHours[seriesId][msg.sender] >= hours_, "Insufficient open hours");
 
         openHours[seriesId][msg.sender] -= hours_;
-        HourToken(token).burn(msg.sender, hours_ * 1e18);
-
         uint256 refundBond = bondPerHour[seriesId][msg.sender] * hours_;
+        if (openHours[seriesId][msg.sender] == 0) {
+            bondPerHour[seriesId][msg.sender] = 0;
+        }
+
+        HourToken(token).burn(msg.sender, hours_ * 1e18);
         require(gridUSD.transfer(msg.sender, refundBond), "Refund transfer failed");
     }
 
