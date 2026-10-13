@@ -123,6 +123,7 @@ contract DeliveryEscrow {
     }
 
     function mint(uint256 seriesId, uint256 hours_) external returns (uint256 bond) {
+        require(providers[msg.sender].registered, "Provider not registered");
         require(hours_ > 0, "Hours must be > 0");
         (bytes32 gpuClass, address token, , , ) = factory.series(seriesId);
         

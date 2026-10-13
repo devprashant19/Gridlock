@@ -32,7 +32,6 @@ contract DeliveryEscrowRegistrationTest is GridlockTestBase {
     }
 
     /// @notice Regression test verifying registration enforcement on mint.
-    /// Fails against unpatched contract because mint() currently lacks registration check.
     function test_RevertWhen_ProviderNotRegistered() public {
         vm.startPrank(unregisteredUser);
         gridUSD.approve(address(escrow), 10_000 * 1e6);
@@ -40,6 +39,17 @@ contract DeliveryEscrowRegistrationTest is GridlockTestBase {
         // Intended policy: minting requires prior provider registration
         vm.expectRevert("Provider not registered");
         escrow.mint(testSeriesId, 5);
+        vm.stopPrank();
+    }
+
+    function test_Mint_Success_When_Registered() public {
+        vm.startPrank(PROVIDER1);
+        escrow.registerProvider("Provider Alpha");
+        gridUSD.approve(address(escrow), 10_000 * 1e6);
+
+        uint256 bond = escrow.mint(testSeriesId, 5);
+        assertTrue(bond > 0);
+        assertEq(escrow.openHours(testSeriesId, PROVIDER1), 5);
         vm.stopPrank();
     }
 }
