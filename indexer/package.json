@@ -1,6 +1,7 @@
 {
   "name": "gridlock-indexer",
   "version": "0.1.0",
+  "type": "module",
   "description": "Envio indexer for Gridlock GPU forwards",
   "scripts": {
     "codegen": "envio codegen",
