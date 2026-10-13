@@ -9,7 +9,9 @@
     "buy": "node --experimental-strip-types cli/buy.ts",
     "redeem": "node --experimental-strip-types cli/redeem.ts",
     "verify": "node --experimental-strip-types cli/verify.ts",
-    "workflow": "node --experimental-strip-types cli/workflow.ts"
+    "workflow": "node --experimental-strip-types cli/workflow.ts",
+    "prf": "node --experimental-strip-types cli/prf.ts",
+    "agent": "node --experimental-strip-types cli/agent.ts"
   },
   "dependencies": {
     "ethers": "^5.7.2",

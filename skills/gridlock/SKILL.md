@@ -35,3 +35,17 @@ Generates `DeliveryEscrow.redeem` transaction with the agent's derived encryptio
 gridlock verify --delivery <id> --class "H100 SXM"
 ```
 Runs the hardware challenge inside the rented machine. If the hardware is counterfeit or throttled, Gridlock slashes the provider's 120% bond and refunds the agent.
+
+### 5. Mera Passkey PRF Decryption
+```bash
+npm run prf -- --decrypt --priv <buyerPriv> --ciphertext <ciphertextHex>
+```
+Extracts and decrypts on-chain SSH credentials into memory using Mera passkey PRF, X25519 Diffie-Hellman, and ChaCha20-Poly1305.
+
+### 6. Autonomous Compute Arbitrageur Agent
+```bash
+npm run agent -- --scan
+npm run agent -- --series gH100-W43 --hours 8 --budget 500
+```
+Scans spot vs forward spreads, detects forward discounts (>5%), enforces Guard Mode budget limits, and emits an end-to-end execution transaction bundle.
+
