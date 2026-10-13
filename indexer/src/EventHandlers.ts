@@ -140,7 +140,7 @@ indexer.onEvent(
   async ({ event, context }) => {
     const deliveryId = event.params.deliveryId.toString();
     const delivery = await context.Delivery.get(deliveryId);
-    if (delivery) {
+    if (delivery && delivery.status === "REQUESTED") {
       context.Delivery.set({
         ...delivery,
         status: "PROVISIONED",
@@ -161,6 +161,11 @@ indexer.onEvent(
 
     const delivery = await context.Delivery.get(deliveryId);
     if (delivery) {
+      if (delivery.status === "SETTLED") {
+        // Idempotency: delivery has already been settled, do not re-increment provider stats
+        return;
+      }
+
       context.Delivery.set({
         ...delivery,
         status: "SETTLED",
@@ -214,6 +219,11 @@ indexer.onEvent(
 
     const delivery = await context.Delivery.get(deliveryId);
     if (delivery) {
+      if (delivery.status === "TIMEOUT") {
+        // Idempotency: timeout already claimed, do not re-increment provider timeouts
+        return;
+      }
+
       context.Delivery.set({
         ...delivery,
         status: "TIMEOUT",
@@ -232,6 +242,7 @@ indexer.onEvent(
     }
   }
 );
+
 
 // PrintPublished handler
 indexer.onEvent(
