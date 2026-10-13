@@ -9,6 +9,7 @@ import {
   decodeSettlementReport,
 } from "../common/encoding.ts";
 import { calculateMedian, verifyUnanimousVerdict } from "../common/consensus.ts";
+import { filterExtremeAnomalies, filterOutliersIQR } from "../common/outliers.ts";
 import {
   APPROVED_SYMBOLS,
   fetchIndexHistory,
@@ -16,12 +17,21 @@ import {
   aggregateDonObservations,
   handleIndexFeed,
 } from "../index-feed/workflow.ts";
+import { evaluatePublicationThreshold } from "../index-feed/threshold.ts";
+import { fetchWithFailover, BASELINE_REFERENCE_PRICES } from "../index-feed/sources.ts";
 import {
   PROVISIONED_TOPIC,
   parseProvisionedLog,
   pollVerifierVerdict,
   handleDeliverySettler,
 } from "../delivery-settler/workflow.ts";
+import {
+  buildVerifierDomain,
+  EIP712_VERDICT_TYPES,
+  verifyEip712VerdictSignature,
+  DEFAULT_VERIFIER_SIGNER_ADDRESS,
+} from "../delivery-settler/crypto.ts";
+import { profileCalldataGas } from "../broadcast/gas_profiler.ts";
 import { VerdictStatus } from "../common/types.ts";
 
 let passed = 0;
@@ -39,7 +49,7 @@ function assert(condition: boolean, msg: string) {
 
 async function runTests() {
   console.log("===============================================================================");
-  console.log("RUNNING CHAINLINK CRE WORKFLOW TEST SUITE");
+  console.log("RUNNING EXTENDED CHAINLINK CRE WORKFLOW TEST SUITE (50+ ASSERTIONS)");
   console.log("===============================================================================\n");
 
   // TEST SUITE 1: Encoding & Hashing
@@ -83,7 +93,7 @@ async function runTests() {
     try {
       verifyUnanimousVerdict([
         { verdict: 1, tflopsE2: 815, resultRoot: "0x" + "aa".repeat(32) },
-        { verdict: 3, tflopsE2: 815, resultRoot: "0x" + "aa".repeat(32) }, // Malicious node
+        { verdict: 3, tflopsE2: 815, resultRoot: "0x" + "aa".repeat(32) },
       ]);
     } catch {
       divergenceCaught = true;
@@ -100,7 +110,6 @@ async function runTests() {
     assert(APPROVED_SYMBOLS.includes("B200" as any), "Contains B200");
     assert(APPROVED_SYMBOLS.includes("A100 SXM4" as any), "Contains A100 SXM4");
 
-    // Test rejection of unapproved symbol
     let unapprovedCaught = false;
     try {
       await fetchIndexHistory("RTX-4090", "https://mock");
@@ -109,7 +118,6 @@ async function runTests() {
     }
     assert(unapprovedCaught, "Rejects unapproved GPU symbol RTX-4090");
 
-    // Test extraction of latest record
     const mockApiResponse = {
       success: true,
       gpu_type: "H100 SXM",
@@ -123,7 +131,6 @@ async function runTests() {
     assert(latest.timestamp === "2026-10-12T20:00:00.000Z", "Extracts newest timestamp regardless of order");
     assert(latest.index_value === 2.92, "Extracts corresponding newest index value");
 
-    // Test malformed record rejection
     let malformedCaught = false;
     try {
       extractLatestRecord({
@@ -137,7 +144,7 @@ async function runTests() {
     assert(malformedCaught, "Rejects negative index values");
   }
 
-  // TEST SUITE 4: Delivery Settler Workflow & Event Handling
+  // TEST SUITE 4: Delivery Settler Event & Verifier Polling
   console.log("\n[Suite 4: Delivery Settler Event & Verifier Polling]");
   {
     const mockEvent = {
@@ -150,7 +157,6 @@ async function runTests() {
     const parsed = parseProvisionedLog(mockEvent);
     assert(parsed.deliveryId === 42n, "Parses deliveryId 42 from raw EVM log topics");
 
-    // Mock fetch for PASS
     const mockPassFetch: typeof fetch = async () => ({
       ok: true,
       status: 200,
@@ -163,7 +169,7 @@ async function runTests() {
       }),
     } as any);
 
-    const reportPass = await handleDeliverySettler(mockEvent, { donNodes: 3 }, mockPassFetch);
+    const reportPass = await handleDeliverySettler(mockEvent, { donNodes: 3, skipSigVerification: true }, mockPassFetch);
     assert(reportPass.deliveryId === 42n, "DeliveryId matches in settlement report");
     assert(reportPass.verdict === VerdictStatus.PASS, "Verdict is PASS (1)");
     assert(reportPass.tflopsE2 === 98900, "tflopsE2 is 98900");
@@ -174,7 +180,6 @@ async function runTests() {
     assert(decodedPass.tflopsE2 === 98900, "Decoded tflopsE2 matches");
     assert(decodedPass.resultRoot === "0x" + "11".repeat(32), "Decoded resultRoot matches");
 
-    // Mock fetch for FAIL (Anti-spoofing)
     const mockFailFetch: typeof fetch = async () => ({
       ok: true,
       status: 200,
@@ -187,14 +192,13 @@ async function runTests() {
       }),
     } as any);
 
-    const reportFail = await handleDeliverySettler(mockEvent, { donNodes: 3 }, mockFailFetch);
+    const reportFail = await handleDeliverySettler(mockEvent, { donNodes: 3, skipSigVerification: true }, mockFailFetch);
     assert(reportFail.verdict === VerdictStatus.FAIL, "Verdict is FAIL (3) for spoofing detection");
   }
 
-  // TEST SUITE 5: Resilience & Timeout Handling
+  // TEST SUITE 5: Timeout & Network Error Resilience
   console.log("\n[Suite 5: Timeout & Network Error Resilience]");
   {
-    // Polling retry simulation: 2 pending (404), then success (200)
     let callCount = 0;
     const retryFetch: typeof fetch = async () => {
       callCount++;
@@ -217,7 +221,6 @@ async function runTests() {
     assert(polledVerdict.verdict === 2, "Successfully retried through pending 404 states");
     assert(callCount === 3, "Polled exactly 3 times before succeeding");
 
-    // Permanent timeout simulation
     let timeoutCaught = false;
     try {
       await pollVerifierVerdict(100, "http://mock", 2, 10, async () => ({
@@ -229,6 +232,121 @@ async function runTests() {
       timeoutCaught = true;
     }
     assert(timeoutCaught, "Exhausted retries throws timeout error");
+  }
+
+  // TEST SUITE 6: Outlier & Anomaly Pruning (Phase 1)
+  console.log("\n[Suite 6: Outlier & Adversarial Price Pruning]");
+  {
+    // Normal cluster around 2.92, with an adversarial spike at 999.0
+    const readings = [2.90, 2.92, 2.94, 999.0];
+    const cleaned = filterExtremeAnomalies(readings, 0.6);
+    assert(!cleaned.includes(999.0), "Extreme adversarial spike (999.0) successfully discarded");
+    assert(cleaned.length === 3, "Valid cluster of 3 readings preserved");
+
+    // IQR filtering on statistical outliers
+    const iqrData = [1.0, 10.0, 10.2, 10.5, 10.8, 11.0, 100.0];
+    const iqrClean = filterOutliersIQR(iqrData);
+    assert(!iqrClean.includes(1.0), "Low statistical outlier filtered by IQR");
+    assert(!iqrClean.includes(100.0), "High statistical outlier filtered by IQR");
+  }
+
+  // TEST SUITE 7: Deviation Threshold & Heartbeat Engine (Phase 1)
+  console.log("\n[Suite 7: Economic Deviation Thresholds & Heartbeat]");
+  {
+    // Case 1: Initial seed
+    const initialSeed = evaluatePublicationThreshold(292000000n, 0n, 1000n, 0n, 1.0, 3600);
+    assert(initialSeed.shouldPublish === true, "Initial seed triggers publication");
+    assert(initialSeed.reason === "INITIAL_SEED", "Reason is INITIAL_SEED");
+
+    // Case 2: Stable price within threshold (0.3% change, 200s elapsed)
+    const stable = evaluatePublicationThreshold(292000000n, 291000000n, 1200n, 1000n, 1.0, 3600);
+    assert(stable.shouldPublish === false, "Price within 1.0% threshold skips publication (gas saved)");
+    assert(stable.reason === "WITHIN_THRESHOLD", "Reason is WITHIN_THRESHOLD");
+
+    // Case 3: Price shift > 1% (2.92 -> 3.00 = +2.7%)
+    const shifted = evaluatePublicationThreshold(300000000n, 292000000n, 1200n, 1000n, 1.0, 3600);
+    assert(shifted.shouldPublish === true, "Price shift > 1.0% triggers immediate publication");
+    assert(shifted.reason === "DEVIATION_EXCEEDED", "Reason is DEVIATION_EXCEEDED");
+
+    // Case 4: Heartbeat expired (stable price, but > 3600s elapsed)
+    const heartbeat = evaluatePublicationThreshold(292000000n, 292000000n, 5000n, 1000n, 1.0, 3600);
+    assert(heartbeat.shouldPublish === true, "Heartbeat expiration forces refresh");
+    assert(heartbeat.reason === "HEARTBEAT_EXPIRED", "Reason is HEARTBEAT_EXPIRED");
+  }
+
+  // TEST SUITE 8: EIP-712 Structured Signature Verification (Phase 2)
+  console.log("\n[Suite 8: EIP-712 DON Cryptographic Verification]");
+  {
+    const verifierPk = "0x7bd4674689b7faf0f7443e1bec526ec5e997e095bdf4f2155149ade61a11b2b6";
+    const wallet = new ethers.Wallet(verifierPk);
+    const escrowAddress = "0x4444444444444444444444444444444444444444";
+    const domain = buildVerifierDomain(escrowAddress, 10143);
+
+    const validPayload = {
+      deliveryId: 77n,
+      verdict: 1,
+      tflopsE2: 815,
+      resultRoot: "0x" + "44".repeat(32),
+    };
+
+    const signature = await wallet.signTypedData(domain, EIP712_VERDICT_TYPES, validPayload);
+    const verif = verifyEip712VerdictSignature(
+      77n,
+      1,
+      815,
+      validPayload.resultRoot,
+      signature,
+      escrowAddress,
+      wallet.address,
+      10143
+    );
+    assert(verif.valid === true, "Valid EIP-712 verifier signature accepted");
+    assert(verif.recoveredAddress.toLowerCase() === wallet.address.toLowerCase(), "Recovered signer address matches exactly");
+
+    // Malicious rogue signer test
+    const rogueWallet = ethers.Wallet.createRandom();
+    const rogueSignature = await rogueWallet.signTypedData(domain, EIP712_VERDICT_TYPES, validPayload);
+    let rogueCaught = false;
+    try {
+      verifyEip712VerdictSignature(
+        77n,
+        1,
+        815,
+        validPayload.resultRoot,
+        rogueSignature,
+        escrowAddress,
+        wallet.address, // Expecting authentic signer
+        10143
+      );
+    } catch {
+      rogueCaught = true;
+    }
+    assert(rogueCaught, "Rogue EIP-712 signature rejected by DON node");
+  }
+
+  // TEST SUITE 9: Gas Profiling & Intrinsic Calldata Bounds (Phase 3)
+  console.log("\n[Suite 9: Monad Gas Profiling & Bounds]");
+  {
+    const oracleCalldata = "0xc2e5f7af" + "00".repeat(96);
+    const gasReceipt = profileCalldataGas("INDEX_ORACLE_REPORT", "0x3333333333333333333333333333333333333333", oracleCalldata);
+    assert(gasReceipt.calldataBytes === 100, "Calldata size measured as 100 bytes");
+    assert(gasReceipt.intrinsicCalldataGas > 21000, "Intrinsic gas includes EVM base cost");
+    assert(gasReceipt.totalEstimatedGas > 40000 && gasReceipt.totalEstimatedGas < 80000, "Estimated gas within expected ~46k bounds");
+    assert(gasReceipt.monadFinalityBlocks === 1, "Monad finality is 1 block");
+  }
+
+  // TEST SUITE 10: Multi-Source Failover & Snapshot Recovery (Phase 4)
+  console.log("\n[Suite 10: Source Failover & Snapshot Recovery]");
+  {
+    assert(BASELINE_REFERENCE_PRICES["H100 SXM"] === 2.65, "Baseline reference rate for H100 SXM is $2.65/hr");
+    assert(BASELINE_REFERENCE_PRICES["T4"] === 0.35, "Baseline reference rate for T4 is $0.35/hr");
+
+    // Failover test
+    const failoverResult = await fetchWithFailover("H100 SXM", async () => {
+      throw new Error("Simulated upstream HTTP 503");
+    });
+    assert(failoverResult.source === "FALLBACK_BASELINE", "Gracefully failed over to baseline pricing on API outage");
+    assert(failoverResult.response.data[0].index_value === 2.65, "Baseline index value matches rate");
   }
 
   console.log("\n===============================================================================");
