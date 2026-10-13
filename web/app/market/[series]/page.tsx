@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { use, useMemo, useState } from "react";
 import { addressUrl, GPU_CLASSES, IS_MOCK, SERIES, seriesBySymbol } from "@/lib/config";
 import { readBalances, readBook, readIndexPrices } from "@/lib/data";
@@ -23,9 +24,13 @@ import {
   Badge,
 } from "@/components/ui";
 
-export default function MarketPage({ params }: { params: Promise<{ series: string }> }) {
-  const { series: symbol } = use(params);
-  const s = seriesBySymbol(decodeURIComponent(symbol));
+export default function MarketPage({ params }: { params?: Promise<{ series: string }> }) {
+  const routerParams = useParams();
+  const paramFromRouter = (routerParams?.series as string) ?? "";
+  const resolvedProps = params ? use(params) : null;
+  const rawSymbol = paramFromRouter || resolvedProps?.series || "";
+  const symbol = decodeURIComponent(rawSymbol);
+  const s = seriesBySymbol(symbol);
   const { session } = useWallet();
 
   const book = usePoll(() => (s ? readBook(s) : Promise.resolve(null)), [s?.symbol], 1000);

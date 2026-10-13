@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { use, useEffect, useState } from "react";
 import { deliveryEscrowAbi } from "@/lib/abis";
 import { addressUrl, CONTRACTS, GPU_CLASSES, IS_MOCK, seriesById } from "@/lib/config";
@@ -25,8 +26,11 @@ import {
   Spinner,
 } from "@/components/ui";
 
-export default function DeliveryPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function DeliveryPage({ params }: { params?: Promise<{ id: string }> }) {
+  const routerParams = useParams();
+  const paramFromRouter = (routerParams?.id as string) ?? "";
+  const resolvedProps = params ? use(params) : null;
+  const id = paramFromRouter || resolvedProps?.id || "";
   const n = Number(id);
   const valid = Number.isInteger(n) && n >= 0;
   const del = usePoll(() => (valid ? readDelivery(n) : Promise.resolve(null)), [n], 3000);
