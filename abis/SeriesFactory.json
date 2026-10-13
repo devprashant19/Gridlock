@@ -1,29 +1,142 @@
 [
   {
-    "type": "function",
-    "name": "createSeries",
+    "type": "constructor",
     "inputs": [
-      { "name": "gpuClass", "type": "bytes32" },
-      { "name": "symbol", "type": "string" },
-      { "name": "windowStart", "type": "uint64" },
-      { "name": "windowEnd", "type": "uint64" }
-    ],
-    "outputs": [
-      { "name": "seriesId", "type": "uint256" },
-      { "name": "token", "type": "address" }
+      {
+        "name": "_escrow",
+        "type": "address",
+        "internalType": "address"
+      }
     ],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
-    "name": "series",
-    "inputs": [{ "name": "seriesId", "type": "uint256" }],
+    "name": "allSeries",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "outputs": [
-      { "name": "gpuClass", "type": "bytes32" },
-      { "name": "token", "type": "address" },
-      { "name": "windowStart", "type": "uint64" },
-      { "name": "windowEnd", "type": "uint64" },
-      { "name": "symbol", "type": "string" }
+      {
+        "name": "gpuClass",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "windowStart",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "windowEnd",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "symbol",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "createSeries",
+    "inputs": [
+      {
+        "name": "gpuClass",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "symbol",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "windowStart",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "windowEnd",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "seriesId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "escrow",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "series",
+    "inputs": [
+      {
+        "name": "seriesId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "gpuClass",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "windowStart",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "windowEnd",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "symbol",
+        "type": "string",
+        "internalType": "string"
+      }
     ],
     "stateMutability": "view"
   },
@@ -31,19 +144,55 @@
     "type": "function",
     "name": "seriesCount",
     "inputs": [],
-    "outputs": [{ "name": "", "type": "uint256" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "event",
     "name": "SeriesCreated",
     "inputs": [
-      { "name": "seriesId", "type": "uint256", "indexed": true },
-      { "name": "gpuClass", "type": "bytes32", "indexed": true },
-      { "name": "token", "type": "address", "indexed": false },
-      { "name": "windowStart", "type": "uint64", "indexed": false },
-      { "name": "windowEnd", "type": "uint64", "indexed": false },
-      { "name": "symbol", "type": "string", "indexed": false }
+      {
+        "name": "seriesId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "gpuClass",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "windowStart",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      },
+      {
+        "name": "windowEnd",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      },
+      {
+        "name": "symbol",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
     ],
     "anonymous": false
   }
