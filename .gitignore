@@ -41,6 +41,8 @@ wheels/
 .installed.cfg
 *.egg
 .pytest_cache/
+verifier/data/
+
 
 # Foundry / Solidity
 contracts/cache/
@@ -49,7 +51,8 @@ contracts/broadcast/
 contracts/.gas-snapshot
 cache/
 out/
-broadcast/
+/broadcast/
+!cre/broadcast/
 .gas-snapshot
 
 # Envio

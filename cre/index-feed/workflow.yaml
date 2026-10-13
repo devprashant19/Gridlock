@@ -1,0 +1,11 @@
+name: index-feed
+version: 0.1.0
+entrypoint: workflow.ts
+description: "Fetches GPU spot index history from Ornn API, computes DON median consensus, and writes report to IndexOracle"
+triggers:
+  - type: cron
+    schedule: "0 * * * *"
+targets:
+  monad-testnet:
+    chain-selector: "2183018362218727504"
+    rpc-url: "https://testnet-rpc.monad.xyz"

@@ -7,12 +7,15 @@ type Provider @entity {
   id: ID!
   name: String!
   minted: BigInt!
+  bondPosted: BigInt!
   passes: Int!
   degraded: Int!
   fails: Int!
   timeouts: Int!
   hoursDelivered: BigInt!
   slashedTotal: BigInt!
+  earnedTotal: BigInt!
+  deliveries: [Delivery!]! @derivedFrom(field: "provider")
 }
 
 """
@@ -23,9 +26,16 @@ type Series @entity {
   symbol: String!
   gpuClass: String!
   token: String!
+  windowStart: BigInt!
+  windowEnd: BigInt!
   market: String
+  # last Kuru trade price, 18 decimals (Kuru emits Trade.price in 1e18 units)
   lastPrice: BigInt
+  lastTradeAt: BigInt
   openHours: BigInt!
+  mintedHours: BigInt!
+  redeemedHours: BigInt!
+  tradeCount: Int!
 }
 
 """
@@ -37,11 +47,27 @@ type Delivery @entity {
   buyer: String!
   provider: Provider!
   hours: BigInt!
+  buyerEncPubKey: String!
+  deadline: BigInt!
+  # Requested | Provisioned | Settled | TimedOut
   status: String!
+  requestedAt: BigInt!
+  provisionedAt: BigInt
+  ciphertext: String
   verdict: Int
   tflopsE2: Int
   toBuyer: BigInt
   toProvider: BigInt
+  settledAt: BigInt
+  txHash: String!
+}
+
+# Latest index print per GPU class (forward curve "spot" leg)
+type GpuClass @entity {
+  id: ID!
+  latestPriceE8: BigInt!
+  latestDayKey: BigInt!
+  printCount: Int!
 }
 
 """
@@ -52,6 +78,7 @@ type IndexPrint @entity {
   gpuClass: String!
   dayKey: BigInt!
   priceE8: BigInt!
+  timestamp: BigInt!
 }
 
 """
@@ -60,7 +87,15 @@ Represents an orderbook trade execution.
 type Trade @entity {
   id: ID!
   market: String!
+  series: Series
+  orderId: BigInt!
+  isBuy: Boolean!
+  maker: String!
+  taker: String!
+  # 18 decimals
   price: BigInt!
+  # raw Kuru size units (market sizePrecision)
   size: BigInt!
   timestamp: BigInt!
+  txHash: String!
 }

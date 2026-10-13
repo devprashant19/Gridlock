@@ -86,6 +86,10 @@ contract DeliveryEscrow {
     }
 
     constructor(address _gridUSD, address _oracle, address _verifierSigner) {
+        require(_gridUSD != address(0), "Invalid GridUSD address");
+        require(_oracle != address(0), "Invalid oracle address");
+        require(_verifierSigner != address(0), "Invalid verifier signer address");
+
         gridUSD = GridUSD(_gridUSD);
         oracle = IndexOracle(_oracle);
         verifierSigner = _verifierSigner;
@@ -101,10 +105,12 @@ contract DeliveryEscrow {
     }
 
     function setFactory(address _factory) external onlyOwner {
+        require(_factory != address(0), "Invalid factory address");
         factory = SeriesFactory(_factory);
     }
 
     function setVerifierSigner(address _signer) external onlyOwner {
+        require(_signer != address(0), "Invalid verifier signer address");
         verifierSigner = _signer;
         emit VerifierSignerUpdated(_signer);
     }
@@ -123,7 +129,9 @@ contract DeliveryEscrow {
     }
 
     function mint(uint256 seriesId, uint256 hours_) external returns (uint256 bond) {
+        require(providers[msg.sender].registered, "Provider not registered");
         require(hours_ > 0, "Hours must be > 0");
+        require(seriesId < factory.seriesCount(), "Invalid seriesId");
         (bytes32 gpuClass, address token, , , ) = factory.series(seriesId);
         
         (uint128 priceE8, ) = oracle.latest(gpuClass);
@@ -133,11 +141,16 @@ contract DeliveryEscrow {
         require(gridUSD.transferFrom(msg.sender, address(this), bond), "Bond transfer failed");
         HourToken(token).mint(msg.sender, hours_ * 1e18);
 
-        if (openHours[seriesId][msg.sender] == 0) {
+        uint256 currentOpen = openHours[seriesId][msg.sender];
+        if (currentOpen == 0) {
             queue[seriesId].push(msg.sender);
+            bondPerHour[seriesId][msg.sender] = bond / hours_;
+        } else {
+            uint256 totalExistingBond = currentOpen * bondPerHour[seriesId][msg.sender];
+            uint256 totalNewBond = totalExistingBond + bond;
+            bondPerHour[seriesId][msg.sender] = totalNewBond / (currentOpen + hours_);
         }
-        openHours[seriesId][msg.sender] += hours_;
-        bondPerHour[seriesId][msg.sender] = bond / hours_;
+        openHours[seriesId][msg.sender] = currentOpen + hours_;
 
         emit Minted(seriesId, msg.sender, hours_, bond);
     }
@@ -203,6 +216,8 @@ contract DeliveryEscrow {
         Delivery storage d = deliveries[deliveryId];
         require(msg.sender == d.provider, "Only assigned provider");
         require(d.status == Status.Requested, "Invalid status");
+        require(block.timestamp <= d.deadline, "Provisioning deadline passed");
+        require(ciphertext.length > 0, "Empty ciphertext");
 
         d.status = Status.Provisioned;
         d.provisionedAt = uint64(block.timestamp);
@@ -254,8 +269,8 @@ contract DeliveryEscrow {
 
         if (verdict == 1) { // PASS: 100% to provider
             toProvider = d.bondAmount;
-        } else if (verdict == 2) { // DEGRADED: 30% provider, 70% buyer
-            toProvider = (d.bondAmount * 30) / 100;
+        } else if (verdict == 2) { // DEGRADED: 70% provider, 30% buyer
+            toProvider = (d.bondAmount * 70) / 100;
             toBuyer = d.bondAmount - toProvider;
         } else if (verdict == 3) { // FAIL: 100% to buyer
             toBuyer = d.bondAmount;
@@ -298,15 +313,25 @@ contract DeliveryEscrow {
         emit TimeoutClaimed(deliveryId, toBuyer, toProvider);
     }
 
-    function withdrawUnsold(uint256 seriesId, uint256 hours_) external {
+    function withdrawUnsold(uint256 seriesId) external {
+        uint256 hours_ = openHours[seriesId][msg.sender];
+        require(hours_ > 0, "No open hours to withdraw");
+        withdrawUnsold(seriesId, hours_);
+    }
+
+    function withdrawUnsold(uint256 seriesId, uint256 hours_) public {
+        require(hours_ > 0, "Hours must be > 0");
         (, address token, , uint64 windowEnd, ) = factory.series(seriesId);
         require(block.timestamp > windowEnd, "Series window has not ended");
         require(openHours[seriesId][msg.sender] >= hours_, "Insufficient open hours");
 
         openHours[seriesId][msg.sender] -= hours_;
-        HourToken(token).burn(msg.sender, hours_ * 1e18);
-
         uint256 refundBond = bondPerHour[seriesId][msg.sender] * hours_;
+        if (openHours[seriesId][msg.sender] == 0) {
+            bondPerHour[seriesId][msg.sender] = 0;
+        }
+
+        HourToken(token).burn(msg.sender, hours_ * 1e18);
         require(gridUSD.transfer(msg.sender, refundBond), "Refund transfer failed");
     }
 

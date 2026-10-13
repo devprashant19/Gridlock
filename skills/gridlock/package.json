@@ -2,12 +2,16 @@
   "name": "@gridlock/agent-skill",
   "version": "0.1.0",
   "description": "MetaMask Agent Wallet skill for Gridlock GPU forwards",
+  "type": "module",
   "main": "cli/quote.ts",
   "scripts": {
-    "quote": "ts-node cli/quote.ts",
-    "buy": "ts-node cli/buy.ts",
-    "redeem": "ts-node cli/redeem.ts",
-    "verify": "ts-node cli/verify.ts"
+    "quote": "node --experimental-strip-types cli/quote.ts",
+    "buy": "node --experimental-strip-types cli/buy.ts",
+    "redeem": "node --experimental-strip-types cli/redeem.ts",
+    "verify": "node --experimental-strip-types cli/verify.ts",
+    "workflow": "node --experimental-strip-types cli/workflow.ts",
+    "prf": "node --experimental-strip-types cli/prf.ts",
+    "agent": "node --experimental-strip-types cli/agent.ts"
   },
   "dependencies": {
     "ethers": "^5.7.2",
@@ -15,7 +19,6 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "ts-node": "^10.9.2",
     "typescript": "^5.5.0"
   }
 }

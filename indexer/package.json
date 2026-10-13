@@ -6,7 +6,10 @@
   "scripts": {
     "codegen": "envio codegen",
     "dev": "envio dev",
-    "test": "vitest run"
+    "start": "envio start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "sync": "node scripts/sync-addresses.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

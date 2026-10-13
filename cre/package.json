@@ -1,0 +1,15 @@
+{
+  "name": "cre",
+  "version": "1.0.0",
+  "description": "Two workflows running on Chainlink CRE:",
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-strip-types tests/test_workflows.ts",
+    "simulate:index-feed": "node --experimental-strip-types index-feed/simulate.ts",
+    "simulate:delivery-settler": "node --experimental-strip-types delivery-settler/simulate.ts"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.7",
+    "ethers": "^6.17.0"
+  }
+}

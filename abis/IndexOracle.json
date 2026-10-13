@@ -1,22 +1,116 @@
 [
   {
-    "type": "function",
-    "name": "owner",
+    "type": "constructor",
     "inputs": [],
-    "outputs": [{ "name": "", "type": "address" }],
-    "stateMutability": "view"
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
     "name": "forwarder",
     "inputs": [],
-    "outputs": [{ "name": "", "type": "address" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
-    "name": "setForwarder",
-    "inputs": [{ "name": "_forwarder", "type": "address" }],
+    "name": "latest",
+    "inputs": [
+      {
+        "name": "gpuClass",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "priceE8",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "dayKey",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "latestPrints",
+    "inputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "priceE8",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "dayKey",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "onReport",
+    "inputs": [
+      {
+        "name": "report",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "owner",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "pushPrint",
+    "inputs": [
+      {
+        "name": "gpuClass",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "dayKey",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "priceE8",
+        "type": "uint128",
+        "internalType": "uint128"
+      }
+    ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
@@ -24,47 +118,68 @@
     "type": "function",
     "name": "setFixedPrice",
     "inputs": [
-      { "name": "className", "type": "string" },
-      { "name": "priceE8", "type": "uint128" }
+      {
+        "name": "className",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "priceE8",
+        "type": "uint128",
+        "internalType": "uint128"
+      }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
-    "name": "pushPrint",
+    "name": "setForwarder",
     "inputs": [
-      { "name": "gpuClass", "type": "bytes32" },
-      { "name": "dayKey", "type": "uint64" },
-      { "name": "priceE8", "type": "uint128" }
+      {
+        "name": "_forwarder",
+        "type": "address",
+        "internalType": "address"
+      }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
   {
-    "type": "function",
-    "name": "onReport",
-    "inputs": [{ "name": "report", "type": "bytes" }],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "latest",
-    "inputs": [{ "name": "gpuClass", "type": "bytes32" }],
-    "outputs": [
-      { "name": "priceE8", "type": "uint128" },
-      { "name": "dayKey", "type": "uint64" }
+    "type": "event",
+    "name": "ForwarderUpdated",
+    "inputs": [
+      {
+        "name": "forwarder",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
     ],
-    "stateMutability": "view"
+    "anonymous": false
   },
   {
     "type": "event",
     "name": "PrintPublished",
     "inputs": [
-      { "name": "gpuClass", "type": "bytes32", "indexed": true },
-      { "name": "dayKey", "type": "uint64", "indexed": true },
-      { "name": "priceE8", "type": "uint128", "indexed": false }
+      {
+        "name": "gpuClass",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "dayKey",
+        "type": "uint64",
+        "indexed": true,
+        "internalType": "uint64"
+      },
+      {
+        "name": "priceE8",
+        "type": "uint128",
+        "indexed": false,
+        "internalType": "uint128"
+      }
     ],
     "anonymous": false
   }

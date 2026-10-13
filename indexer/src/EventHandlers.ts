@@ -1,4 +1,40 @@
 import { indexer } from "envio";
+import { MARKET_TO_SERIES } from "./markets.js";
+
+const ZERO = 0n;
+
+const emptyProvider = (id: string) => ({
+  id,
+  name: "",
+  minted: ZERO,
+  bondPosted: ZERO,
+  passes: 0,
+  degraded: 0,
+  fails: 0,
+  timeouts: 0,
+  hoursDelivered: ZERO,
+  slashedTotal: ZERO,
+  earnedTotal: ZERO,
+});
+
+const emptySeries = (id: string) => ({
+  id,
+  symbol: `Series-${id}`,
+  gpuClass: "unknown",
+  token: "0x0000000000000000000000000000000000000000",
+  windowStart: ZERO,
+  windowEnd: ZERO,
+  market: undefined as string | undefined,
+  lastPrice: undefined as bigint | undefined,
+  lastTradeAt: undefined as bigint | undefined,
+  openHours: ZERO,
+  mintedHours: ZERO,
+  redeemedHours: ZERO,
+  tradeCount: 0,
+});
+
+const marketForSeries = (seriesId: string): string | undefined =>
+  Object.entries(MARKET_TO_SERIES).find(([, s]) => String(s.seriesId) === seriesId)?.[0];
 
 // ProviderRegistered handler
 indexer.onEvent(
@@ -13,15 +49,8 @@ indexer.onEvent(
       });
     } else {
       context.Provider.set({
-        id: providerId,
+        ...emptyProvider(providerId),
         name: event.params.name,
-        minted: 0n,
-        passes: 0,
-        degraded: 0,
-        fails: 0,
-        timeouts: 0,
-        hoursDelivered: 0n,
-        slashedTotal: 0n,
       });
     }
   }
@@ -32,25 +61,16 @@ indexer.onEvent(
   { contract: "SeriesFactory", event: "SeriesCreated" },
   async ({ event, context }) => {
     const seriesId = event.params.seriesId.toString();
-    const existing = await context.Series.get(seriesId);
-    if (!existing) {
-      context.Series.set({
-        id: seriesId,
-        symbol: event.params.symbol,
-        gpuClass: event.params.gpuClass,
-        token: event.params.token.toLowerCase(),
-        market: undefined,
-        lastPrice: undefined,
-        openHours: 0n,
-      });
-    } else {
-      context.Series.set({
-        ...existing,
-        symbol: event.params.symbol,
-        gpuClass: event.params.gpuClass,
-        token: event.params.token.toLowerCase(),
-      });
-    }
+    const existing = (await context.Series.get(seriesId)) ?? emptySeries(seriesId);
+    context.Series.set({
+      ...existing,
+      symbol: event.params.symbol,
+      gpuClass: event.params.gpuClass,
+      token: event.params.token.toLowerCase(),
+      windowStart: BigInt(event.params.windowStart),
+      windowEnd: BigInt(event.params.windowEnd),
+      market: existing.market ?? marketForSeries(seriesId),
+    });
   }
 );
 
@@ -60,36 +80,24 @@ indexer.onEvent(
   async ({ event, context }) => {
     const providerId = event.params.provider.toLowerCase();
     const seriesId = event.params.seriesId.toString();
+    const hours = BigInt(event.params.hours_);
+    const bond = BigInt(event.params.bond);
 
-    // 1. Update Provider minted hours
-    const provider = await context.Provider.get(providerId);
-    if (provider) {
-      context.Provider.set({
-        ...provider,
-        minted: provider.minted + event.params.hours_,
-      });
-    } else {
-      context.Provider.set({
-        id: providerId,
-        name: `Provider-${providerId.slice(0, 6)}`,
-        minted: event.params.hours_,
-        passes: 0,
-        degraded: 0,
-        fails: 0,
-        timeouts: 0,
-        hoursDelivered: 0n,
-        slashedTotal: 0n,
-      });
-    }
+    // 1. Update Provider minted hours and posted bond
+    const provider = (await context.Provider.get(providerId)) ?? emptyProvider(providerId);
+    context.Provider.set({
+      ...provider,
+      minted: provider.minted + hours,
+      bondPosted: provider.bondPosted + bond,
+    });
 
-    // 2. Update Series open hours
-    const series = await context.Series.get(seriesId);
-    if (series) {
-      context.Series.set({
-        ...series,
-        openHours: series.openHours + event.params.hours_,
-      });
-    }
+    // 2. Update Series open hours & minted hours
+    const series = (await context.Series.get(seriesId)) ?? emptySeries(seriesId);
+    context.Series.set({
+      ...series,
+      openHours: series.openHours + hours,
+      mintedHours: series.mintedHours + hours,
+    });
   }
 );
 
@@ -99,51 +107,41 @@ indexer.onEvent(
   async ({ event, context }) => {
     const deliveryId = event.params.deliveryId.toString();
     const seriesId = event.params.seriesId.toString();
-    const buyer = event.params.buyer.toLowerCase();
     const providerId = event.params.provider.toLowerCase();
+    const hours = BigInt(event.params.hours_);
+    const ts = BigInt(event.block?.timestamp ?? 0);
+    const txHash = (event as any).transaction?.hash ?? "0x";
 
-    // Ensure series entity exists if indexed mid-stream
-    const series = await context.Series.get(seriesId);
-    if (!series) {
-      context.Series.set({
-        id: seriesId,
-        symbol: `Series-${seriesId}`,
-        gpuClass: "unknown",
-        token: "0x0000000000000000000000000000000000000000",
-        market: undefined,
-        lastPrice: undefined,
-        openHours: 0n,
-      });
+    // Reconcile missing provider or series for mid-stream indexing
+    if (!(await context.Provider.get(providerId))) {
+      context.Provider.set(emptyProvider(providerId));
     }
 
-    // Ensure provider entity exists if assigned
-    const provider = await context.Provider.get(providerId);
-    if (!provider) {
-      context.Provider.set({
-        id: providerId,
-        name: `Provider-${providerId.slice(0, 6)}`,
-        minted: 0n,
-        passes: 0,
-        degraded: 0,
-        fails: 0,
-        timeouts: 0,
-        hoursDelivered: 0n,
-        slashedTotal: 0n,
-      });
-    }
+    const series = (await context.Series.get(seriesId)) ?? emptySeries(seriesId);
+    context.Series.set({
+      ...series,
+      openHours: series.openHours > hours ? series.openHours - hours : ZERO,
+      redeemedHours: series.redeemedHours + hours,
+    });
 
-    // Create delivery record
     context.Delivery.set({
       id: deliveryId,
       series_id: seriesId,
-      buyer: buyer,
+      buyer: event.params.buyer.toLowerCase(),
       provider_id: providerId,
-      hours: event.params.hours_,
+      hours,
+      buyerEncPubKey: event.params.buyerEncPubKey,
+      deadline: BigInt(event.params.deadline),
       status: "REQUESTED",
+      requestedAt: ts,
+      provisionedAt: undefined,
+      ciphertext: undefined,
       verdict: undefined,
       tflopsE2: undefined,
       toBuyer: undefined,
       toProvider: undefined,
+      settledAt: undefined,
+      txHash,
     });
   }
 );
@@ -154,10 +152,37 @@ indexer.onEvent(
   async ({ event, context }) => {
     const deliveryId = event.params.deliveryId.toString();
     const delivery = await context.Delivery.get(deliveryId);
-    if (delivery && delivery.status === "REQUESTED") {
+    const ts = BigInt(event.block?.timestamp ?? 0);
+
+    if (delivery) {
+      if (delivery.status === "SETTLED" || delivery.status === "TIMEOUT") {
+        return; // idempotency guard
+      }
       context.Delivery.set({
         ...delivery,
         status: "PROVISIONED",
+        provisionedAt: ts,
+        ciphertext: event.params.ciphertext,
+      });
+    } else {
+      context.Delivery.set({
+        id: deliveryId,
+        series_id: "unknown",
+        buyer: "unknown",
+        provider_id: "unknown",
+        hours: ZERO,
+        buyerEncPubKey: "0x",
+        deadline: ZERO,
+        status: "PROVISIONED",
+        requestedAt: ts,
+        provisionedAt: ts,
+        ciphertext: event.params.ciphertext,
+        verdict: undefined,
+        tflopsE2: undefined,
+        toBuyer: undefined,
+        toProvider: undefined,
+        settledAt: undefined,
+        txHash: (event as any).transaction?.hash ?? "0x",
       });
     }
   }
@@ -168,71 +193,58 @@ indexer.onEvent(
   { contract: "DeliveryEscrow", event: "Settled" },
   async ({ event, context }) => {
     const deliveryId = event.params.deliveryId.toString();
+    const delivery = await context.Delivery.get(deliveryId);
     const verdict = Number(event.params.verdict);
-    const tflopsE2 = Number(event.params.tflopsE2);
-    const toBuyer = event.params.toBuyer;
-    const toProvider = event.params.toProvider;
+    const toBuyer = BigInt(event.params.toBuyer);
+    const toProvider = BigInt(event.params.toProvider);
+    const ts = BigInt(event.block?.timestamp ?? 0);
 
-    let delivery = await context.Delivery.get(deliveryId);
-    if (!delivery) {
-      // Reconcile missing prior event in partial history
+    if (delivery && (delivery.status === "SETTLED" || delivery.status === "TIMEOUT")) {
+      return; // Replay / reorg idempotency protection
+    }
+
+    if (delivery) {
       context.Delivery.set({
-        id: deliveryId,
-        series_id: "unknown",
-        buyer: "0x0000000000000000000000000000000000000000",
-        provider_id: "0x0000000000000000000000000000000000000000",
-        hours: 0n,
+        ...delivery,
         status: "SETTLED",
-        verdict: verdict,
-        tflopsE2: tflopsE2,
-        toBuyer: toBuyer,
-        toProvider: toProvider,
+        verdict,
+        tflopsE2: Number(event.params.tflopsE2),
+        toBuyer,
+        toProvider,
+        settledAt: ts,
       });
-      return;
-    }
 
-    if (delivery.status === "SETTLED") {
-      // Idempotency: delivery has already been settled, do not re-increment provider stats
-      return;
-    }
-
-    context.Delivery.set({
-      ...delivery,
-      status: "SETTLED",
-      verdict: verdict,
-      tflopsE2: tflopsE2,
-      toBuyer: toBuyer,
-      toProvider: toProvider,
-    });
-
-    // Update provider stats
-    const provider = await context.Provider.get(delivery.provider_id);
-    if (provider) {
-      let passes = provider.passes;
-      let degraded = provider.degraded;
-      let fails = provider.fails;
-      let hoursDelivered = provider.hoursDelivered;
-      let slashedTotal = provider.slashedTotal;
-
-      if (verdict === 1) {
-        passes += 1;
-        hoursDelivered += delivery.hours;
-      } else if (verdict === 2) {
-        degraded += 1;
-        hoursDelivered += delivery.hours;
-        slashedTotal += toBuyer;
-      } else if (verdict === 3) {
-        fails += 1;
-        slashedTotal += toBuyer;
-      }
+      const providerId = delivery.provider_id;
+      const provider = (await context.Provider.get(providerId)) ?? emptyProvider(providerId);
 
       context.Provider.set({
         ...provider,
-        passes,
-        degraded,
-        fails,
-        hoursDelivered,
-        slashedTotal,
+        passes: provider.passes + (verdict === 1 ? 1 : 0),
+        degraded: provider.degraded + (verdict === 2 ? 1 : 0),
+        fails: provider.fails + (verdict === 3 ? 1 : 0),
+        hoursDelivered: provider.hoursDelivered + (verdict === 3 ? ZERO : delivery.hours),
+        slashedTotal: provider.slashedTotal + toBuyer,
+        earnedTotal: provider.earnedTotal + toProvider,
+      });
+    } else {
+      context.Delivery.set({
+        id: deliveryId,
+        series_id: "unknown",
+        buyer: "unknown",
+        provider_id: "unknown",
+        hours: ZERO,
+        buyerEncPubKey: "0x",
+        deadline: ZERO,
+        status: "SETTLED",
+        requestedAt: ts,
+        provisionedAt: undefined,
+        ciphertext: undefined,
+        verdict,
+        tflopsE2: Number(event.params.tflopsE2),
+        toBuyer,
+        toProvider,
+        settledAt: ts,
+        txHash: (event as any).transaction?.hash ?? "0x",
       });
     }
   }
@@ -243,67 +255,116 @@ indexer.onEvent(
   { contract: "DeliveryEscrow", event: "TimeoutClaimed" },
   async ({ event, context }) => {
     const deliveryId = event.params.deliveryId.toString();
-    const toBuyer = event.params.toBuyer;
-    const toProvider = event.params.toProvider;
+    const delivery = await context.Delivery.get(deliveryId);
+    const toBuyer = BigInt(event.params.toBuyer);
+    const toProvider = BigInt(event.params.toProvider);
+    const ts = BigInt(event.block?.timestamp ?? 0);
 
-    let delivery = await context.Delivery.get(deliveryId);
-    if (!delivery) {
-      // Reconcile missing prior event in partial history
+    if (delivery && (delivery.status === "SETTLED" || delivery.status === "TIMEOUT")) {
+      return; // Replay / reorg protection
+    }
+
+    if (delivery) {
+      context.Delivery.set({
+        ...delivery,
+        status: "TIMEOUT",
+        toBuyer,
+        toProvider,
+        settledAt: ts,
+      });
+
+      const providerId = delivery.provider_id;
+      const provider = (await context.Provider.get(providerId)) ?? emptyProvider(providerId);
+
+      context.Provider.set({
+        ...provider,
+        timeouts: provider.timeouts + (toBuyer > ZERO ? 1 : 0),
+        slashedTotal: provider.slashedTotal + toBuyer,
+        earnedTotal: provider.earnedTotal + toProvider,
+        hoursDelivered: provider.hoursDelivered + (toProvider > ZERO ? delivery.hours : ZERO),
+      });
+    } else {
       context.Delivery.set({
         id: deliveryId,
         series_id: "unknown",
-        buyer: "0x0000000000000000000000000000000000000000",
-        provider_id: "0x0000000000000000000000000000000000000000",
-        hours: 0n,
+        buyer: "unknown",
+        provider_id: "unknown",
+        hours: ZERO,
+        buyerEncPubKey: "0x",
+        deadline: ZERO,
         status: "TIMEOUT",
+        requestedAt: ts,
+        provisionedAt: undefined,
+        ciphertext: undefined,
         verdict: undefined,
         tflopsE2: undefined,
-        toBuyer: toBuyer,
-        toProvider: toProvider,
-      });
-      return;
-    }
-
-    if (delivery.status === "TIMEOUT") {
-      // Idempotency: timeout already claimed, do not re-increment provider timeouts
-      return;
-    }
-
-    context.Delivery.set({
-      ...delivery,
-      status: "TIMEOUT",
-      toBuyer: toBuyer,
-      toProvider: toProvider,
-    });
-
-    const provider = await context.Provider.get(delivery.provider_id);
-    if (provider) {
-      context.Provider.set({
-        ...provider,
-        timeouts: provider.timeouts + 1,
-        slashedTotal: provider.slashedTotal + toBuyer,
+        toBuyer,
+        toProvider,
+        settledAt: ts,
+        txHash: (event as any).transaction?.hash ?? "0x",
       });
     }
   }
 );
-
-
 
 // PrintPublished handler
 indexer.onEvent(
   { contract: "IndexOracle", event: "PrintPublished" },
   async ({ event, context }) => {
-    const id = `${event.params.gpuClass}-${event.params.dayKey.toString()}`;
+    const { gpuClass, dayKey, priceE8 } = event.params;
+    const printId = `${gpuClass}-${dayKey}`;
+    const ts = BigInt(event.block?.timestamp ?? 0);
+
     context.IndexPrint.set({
-      id: id,
-      gpuClass: event.params.gpuClass,
-      dayKey: event.params.dayKey,
-      priceE8: BigInt(event.params.priceE8),
+      id: printId,
+      gpuClass,
+      dayKey: BigInt(dayKey),
+      priceE8: BigInt(priceE8),
+      timestamp: ts,
+    });
+
+    const cls = await context.GpuClass.get(gpuClass);
+    context.GpuClass.set({
+      id: gpuClass,
+      latestPriceE8: BigInt(priceE8),
+      latestDayKey: BigInt(dayKey),
+      printCount: (cls?.printCount ?? 0) + 1,
     });
   }
 );
 
+// KuruOrderBook Trade handler
+indexer.onEvent(
+  { contract: "KuruOrderBook", event: "Trade" },
+  async ({ event, context }) => {
+    const market = (event as any).srcAddress?.toLowerCase() ?? "0x";
+    const mapped = MARKET_TO_SERIES[market];
+    const seriesId = mapped ? String(mapped.seriesId) : undefined;
+    const ts = BigInt(event.block?.timestamp ?? 0);
+    const txHash = (event as any).transaction?.hash ?? "0x";
 
+    context.Trade.set({
+      id: `${event.chainId}-${(event as any).block?.number ?? 0}-${event.logIndex}`,
+      market,
+      series_id: seriesId,
+      orderId: BigInt(event.params.orderId),
+      isBuy: event.params.isBuy,
+      maker: event.params.makerAddress.toLowerCase(),
+      taker: event.params.takerAddress.toLowerCase(),
+      price: BigInt(event.params.price),
+      size: BigInt(event.params.filledSize),
+      timestamp: ts,
+      txHash,
+    });
 
-
-
+    if (!seriesId) return;
+    const s = (await context.Series.get(seriesId)) ?? emptySeries(seriesId);
+    context.Series.set({
+      ...s,
+      market,
+      lastPrice: BigInt(event.params.price),
+      lastTradeAt: ts,
+      tradeCount: s.tradeCount + 1,
+    });
+  }
+);
