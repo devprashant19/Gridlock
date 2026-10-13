@@ -32,4 +32,20 @@ contract SanityTest is GridlockTestBase {
         warpForward(1 days);
         assertEq(block.timestamp, start + 1 days);
     }
+
+    function test_DeterministicSeriesWindows() public {
+        (uint256 seriesId, address tokenAddr, uint64 start, uint64 end) = 
+            _createDeterministicActiveSeries(A100_CLASS, "gA100-ACTIVE", 7 days);
+
+        assertEq(start, block.timestamp);
+        assertEq(end, block.timestamp + 7 days);
+        assertTrue(tokenAddr != address(0));
+
+        (uint256 futSeriesId, , uint64 futStart, uint64 futEnd) = 
+            _createDeterministicFutureSeries(H100_CLASS, "gH100-FUT", 2 days, 5 days);
+
+        assertEq(futStart, block.timestamp + 2 days);
+        assertEq(futEnd, block.timestamp + 7 days);
+        assertTrue(futSeriesId > seriesId);
+    }
 }

@@ -76,6 +76,29 @@ abstract contract GridlockTestBase is Test {
         (seriesId, token) = factory.createSeries(gpuClass, symbol, windowStart, windowEnd);
     }
 
+    /// @notice Creates an active series whose window starts at the current warp time
+    function _createDeterministicActiveSeries(
+        bytes32 gpuClass,
+        string memory symbol,
+        uint256 duration
+    ) internal returns (uint256 seriesId, address token, uint64 windowStart, uint64 windowEnd) {
+        windowStart = uint64(block.timestamp);
+        windowEnd = uint64(block.timestamp + duration);
+        (seriesId, token) = _createSeries(gpuClass, symbol, windowStart, windowEnd);
+    }
+
+    /// @notice Creates a future series whose window starts after a delay
+    function _createDeterministicFutureSeries(
+        bytes32 gpuClass,
+        string memory symbol,
+        uint256 delay,
+        uint256 duration
+    ) internal returns (uint256 seriesId, address token, uint64 windowStart, uint64 windowEnd) {
+        windowStart = uint64(block.timestamp + delay);
+        windowEnd = uint64(block.timestamp + delay + duration);
+        (seriesId, token) = _createSeries(gpuClass, symbol, windowStart, windowEnd);
+    }
+
     function warpTo(uint256 targetTimestamp) internal {
         vm.warp(targetTimestamp);
     }
