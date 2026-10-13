@@ -20,7 +20,7 @@ export function encryptCredentials(
 ): Uint8Array {
   const ephemeralPriv = x25519.utils.randomPrivateKey();
   const ephemeralPub = x25519.getPublicKey(ephemeralPriv);
-  const sharedSecret = x25519.getSharedKey(ephemeralPriv, buyerEncPubKey);
+  const sharedSecret = x25519.getSharedSecret(ephemeralPriv, buyerEncPubKey);
 
   const salt = new TextEncoder().encode("gridlock-payload");
   const info = new TextEncoder().encode("gridlock/xchacha20poly1305/v1");
@@ -48,7 +48,7 @@ export function decryptCredentials(
   const nonce = wirePayload.slice(32, 56);
   const ciphertext = wirePayload.slice(56);
 
-  const sharedSecret = x25519.getSharedKey(buyerPrivKey, ephemeralPub);
+  const sharedSecret = x25519.getSharedSecret(buyerPrivKey, ephemeralPub);
   const salt = new TextEncoder().encode("gridlock-payload");
   const info = new TextEncoder().encode("gridlock/xchacha20poly1305/v1");
   const symmetricKey = hkdf(sha256, sharedSecret, salt, info, 32);

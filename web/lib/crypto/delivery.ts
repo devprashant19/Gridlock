@@ -40,7 +40,7 @@ const symmetricKey = (shared: Uint8Array) => hkdf(sha256, shared, SYM_SALT, SYM_
 export function encryptCredentials(buyerEncPubKey: Hex, payload: CredentialPayload): Hex {
   const buyerPub = hexToBytes(buyerEncPubKey);
   if (buyerPub.length !== 32) throw new Error("buyerEncPubKey must be 32 bytes");
-  if (buyerPub.every((b) => b === 0)) throw new Error("Buyer did not register an encryption key");
+  if (buyerPub.every((b: number) => b === 0)) throw new Error("Buyer did not register an encryption key");
   const ephPriv = x25519.utils.randomPrivateKey();
   const ephPub = x25519.getPublicKey(ephPriv);
   const key = symmetricKey(x25519.getSharedSecret(ephPriv, buyerPub));

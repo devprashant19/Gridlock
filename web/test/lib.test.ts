@@ -85,7 +85,7 @@ describe("session scope", () => {
     const session = createSecp256k1SigningSession({ privateKey: pk });
     pk.fill(0);
     const scoped = scopeAccount(toViemAccount(session), newScope());
-    await expect(scoped.signTypedData({ domain: {}, types: {}, primaryType: "x", message: {} } as never)).rejects.toThrow(ScopeError);
+    await expect(scoped.signTypedData!({ domain: {}, types: {}, primaryType: "x", message: {} } as never)).rejects.toThrow(ScopeError);
     await expect(scoped.signAuthorization!({ address: OUTSIDER, chainId: 1, nonce: 0 } as never)).rejects.toThrow(ScopeError);
 
     const signer = new MeraEthersSigner(scoped, 10143);

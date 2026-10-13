@@ -38,7 +38,7 @@ export function gusdOutflow(scope: Pick<SessionScope, "gridUSD">, to: Address, d
 }
 
 /** Throws ScopeError if the tx is outside the session scope; otherwise books its gUSD spend. */
-export function enforceScope(scope: SessionScope, tx: Pick<TransactionSerializable, "to" | "data" | "value">) {
+export function enforceScope(scope: SessionScope, tx: { to?: Address | null | undefined; data?: `0x${string}` | undefined; value?: bigint | undefined }) {
   const to = tx.to;
   if (!to) throw new ScopeError("Session refuses contract deployments");
   if (!scope.allowlist.some((a) => isAddressEqual(a, to))) {
@@ -60,11 +60,11 @@ export function scopeAccount(inner: LocalAccount, scope: SessionScope): LocalAcc
   const account = toAccount({
     address: inner.address,
     signMessage: (args) => inner.signMessage(args),
-    signTypedData: refuse("EIP-712 signatures") as LocalAccount["signTypedData"],
+    signTypedData: refuse("EIP-712 signatures") as any,
     signTransaction: async (tx, opts) => {
       enforceScope(scope, tx);
       return inner.signTransaction(tx, opts);
     },
   });
-  return { ...account, sign: refuse("raw hash signing"), signAuthorization: refuse("EIP-7702 authorizations") };
+  return { ...account, sign: refuse("raw hash signing"), signAuthorization: refuse("EIP-7702 authorizations") } as LocalAccount;
 }
