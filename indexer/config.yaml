@@ -1,5 +1,5 @@
 name: gridlock-indexer
-description: Real-time indexer for Gridlock GPU forwards on Monad
+description: Real-time indexer for Gridlock GPU forwards on Monad Testnet
 chains:
   - id: 10143
     start_block: 0
