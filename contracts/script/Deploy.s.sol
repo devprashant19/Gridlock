@@ -16,45 +16,75 @@ contract DeployScript is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        // 1. Deploy GridUSD
         GridUSD gridUSD = new GridUSD();
         console.log("GridUSD deployed at:", address(gridUSD));
 
-        // 2. Deploy IndexOracle
         IndexOracle oracle = new IndexOracle();
         console.log("IndexOracle deployed at:", address(oracle));
 
-        // 3. Deploy DeliveryEscrow
         DeliveryEscrow escrow = new DeliveryEscrow(address(gridUSD), address(oracle), verifierSigner);
         console.log("DeliveryEscrow deployed at:", address(escrow));
 
-        // 4. Deploy SeriesFactory
         SeriesFactory factory = new SeriesFactory(address(escrow));
         console.log("SeriesFactory deployed at:", address(factory));
 
-        // 5. Wire factory to escrow
         escrow.setFactory(address(factory));
 
-        // 6. Push initial prices
+        _seedInitialPrices(oracle);
+        _createDefaultSeries(factory);
+
+        vm.stopBroadcast();
+
+        _writeDeploymentMetadata(
+            address(gridUSD),
+            address(oracle),
+            address(escrow),
+            address(factory),
+            verifierSigner
+        );
+    }
+
+    function _seedInitialPrices(IndexOracle oracle) internal {
         oracle.setFixedPrice("T4", 35_000_000); // $0.35/hr
         oracle.pushPrint(keccak256("H100 SXM"), uint64(block.timestamp), 265_000_000); // $2.65/hr
         oracle.pushPrint(keccak256("A100 SXM4"), uint64(block.timestamp), 180_000_000); // $1.80/hr
         oracle.pushPrint(keccak256("H200"), uint64(block.timestamp), 340_000_000); // $3.40/hr
+    }
 
-        // 7. Create default series
+    function _createDefaultSeries(SeriesFactory factory) internal {
         uint64 now_ = uint64(block.timestamp);
-        (uint256 s1, address t1) = factory.createSeries(keccak256("T4"), "gT4-NOW", now_, now_ + 7 days);
-        console.log("Series 1 (gT4-NOW):", s1, t1);
+        factory.createSeries(keccak256("T4"), "gT4-NOW", now_, now_ + 7 days);
+        factory.createSeries(keccak256("H100 SXM"), "gH100-W43", now_ + 7 days, now_ + 14 days);
+        factory.createSeries(keccak256("H100 SXM"), "gH100-W44", now_ + 14 days, now_ + 21 days);
+        factory.createSeries(keccak256("A100 SXM4"), "gA100-W43", now_ + 7 days, now_ + 14 days);
+    }
 
-        (uint256 s2, address t2) = factory.createSeries(keccak256("H100 SXM"), "gH100-W43", now_ + 7 days, now_ + 14 days);
-        console.log("Series 2 (gH100-W43):", s2, t2);
+    function _writeDeploymentMetadata(
+        address gridUSD,
+        address oracle,
+        address escrow,
+        address factory,
+        address verifierSigner
+    ) internal {
+        string memory contractsObj = "contracts";
+        vm.serializeAddress(contractsObj, "GridUSD", gridUSD);
+        vm.serializeAddress(contractsObj, "IndexOracle", oracle);
+        vm.serializeAddress(contractsObj, "SeriesFactory", factory);
+        string memory contractsOutput = vm.serializeAddress(contractsObj, "DeliveryEscrow", escrow);
 
-        (uint256 s3, address t3) = factory.createSeries(keccak256("H100 SXM"), "gH100-W44", now_ + 14 days, now_ + 21 days);
-        console.log("Series 3 (gH100-W44):", s3, t3);
+        string memory extObj = "external";
+        vm.serializeAddress(extObj, "kuruRouter", address(0x7EFbE105Ca7415dE98F96622173458ac1c054630));
+        string memory extOutput = vm.serializeAddress(extObj, "verifierSigner", verifierSigner);
 
-        (uint256 s4, address t4) = factory.createSeries(keccak256("A100 SXM4"), "gA100-W43", now_ + 7 days, now_ + 14 days);
-        console.log("Series 4 (gA100-W43):", s4, t4);
+        string memory root = "root";
+        vm.serializeUint(root, "chainId", block.chainid);
+        vm.serializeString(root, "network", "local-sim");
+        vm.serializeUint(root, "deployBlock", block.number);
+        vm.serializeString(root, "contracts", contractsOutput);
+        string memory finalJson = vm.serializeString(root, "external", extOutput);
 
-        vm.stopBroadcast();
+        string memory exportPath = vm.envOr("DEPLOYMENT_OUT", string("../deployments/local.json"));
+        vm.writeJson(finalJson, exportPath);
+        console.log("Truthful deployment metadata written to:", exportPath);
     }
 }
