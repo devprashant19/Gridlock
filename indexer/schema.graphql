@@ -1,0 +1,49 @@
+type Provider @entity {
+  id: ID!
+  name: String!
+  minted: BigInt!
+  passes: Int!
+  degraded: Int!
+  fails: Int!
+  timeouts: Int!
+  hoursDelivered: BigInt!
+  slashedTotal: BigInt!
+}
+
+type Series @entity {
+  id: ID!
+  symbol: String!
+  gpuClass: String!
+  token: String!
+  market: String
+  lastPrice: BigInt
+  openHours: BigInt!
+}
+
+type Delivery @entity {
+  id: ID!
+  series: Series!
+  buyer: String!
+  provider: Provider!
+  hours: BigInt!
+  status: String!
+  verdict: Int
+  tflopsE2: Int
+  toBuyer: BigInt
+  toProvider: BigInt
+}
+
+type IndexPrint @entity {
+  id: ID!
+  gpuClass: String!
+  dayKey: BigInt!
+  priceE8: BigInt!
+}
+
+type Trade @entity {
+  id: ID!
+  market: String!
+  price: BigInt!
+  size: BigInt!
+  timestamp: BigInt!
+}

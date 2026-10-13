@@ -1,0 +1,14 @@
+{
+  "name": "gridlock-indexer",
+  "version": "0.1.0",
+  "description": "Envio indexer for Gridlock GPU forwards",
+  "scripts": {
+    "codegen": "envio codegen",
+    "dev": "envio dev",
+    "test": "envio test"
+  },
+  "devDependencies": {
+    "envio": "^2.0.0",
+    "typescript": "^5.5.0"
+  }
+}
