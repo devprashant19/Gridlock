@@ -134,11 +134,16 @@ contract DeliveryEscrow {
         require(gridUSD.transferFrom(msg.sender, address(this), bond), "Bond transfer failed");
         HourToken(token).mint(msg.sender, hours_ * 1e18);
 
-        if (openHours[seriesId][msg.sender] == 0) {
+        uint256 currentOpen = openHours[seriesId][msg.sender];
+        if (currentOpen == 0) {
             queue[seriesId].push(msg.sender);
+            bondPerHour[seriesId][msg.sender] = bond / hours_;
+        } else {
+            uint256 totalExistingBond = currentOpen * bondPerHour[seriesId][msg.sender];
+            uint256 totalNewBond = totalExistingBond + bond;
+            bondPerHour[seriesId][msg.sender] = totalNewBond / (currentOpen + hours_);
         }
-        openHours[seriesId][msg.sender] += hours_;
-        bondPerHour[seriesId][msg.sender] = bond / hours_;
+        openHours[seriesId][msg.sender] = currentOpen + hours_;
 
         emit Minted(seriesId, msg.sender, hours_, bond);
     }

@@ -23,9 +23,9 @@ contract DeliveryEscrowMultiBatchTest is GridlockTestBase {
         vm.stopPrank();
     }
 
-    /// @notice Regression test proving that minting batch 2 at a higher price overwrites
-    /// batch 1's historical bond rate, breaking conservation of collateral.
-    function test_MultiBatchBondAccounting_OverwriteDefect() public {
+    /// @notice Verifies that minting multiple batches across differing oracle prices preserves
+    /// the tranche-safe weighted average bond rate, preventing collateral drain.
+    function test_MultiBatchBondAccounting_PreservesWeightedAverageRate() public {
         // Price A: Set oracle price to $1.00/hr (100_000_000 e8) -> bond per hr = 1.20 gUSD (1_200_000)
         vm.prank(OWNER);
         oracle.pushPrint(H100_CLASS, uint64(block.timestamp), 100_000_000);
@@ -47,11 +47,11 @@ contract DeliveryEscrowMultiBatchTest is GridlockTestBase {
         assertEq(bond2, 24_000_000); // 24 gUSD
         assertEq(escrow.openHours(seriesId, PROVIDER1), 20);
 
-        // In a tranche-safe model, total deposited bond = 36_000_000 for 20 hours -> 1_800_000 per hour
-        // But under the unpatched contract, bondPerHour is overwritten to 2_400_000:
-        uint256 recordedRate = escrow.bondPerHour(seriesId, PROVIDER1);
+        // Weighted average: (12_000_000 + 24_000_000) / 20 = 1_800_000
+        uint256 preservedRate = escrow.bondPerHour(seriesId, PROVIDER1);
+        assertEq(preservedRate, 1_800_000, "Weighted average rate preserved across batches");
 
-        // Assert defect presence: unpatched rate equals 2_400_000 instead of weighted average 1_800_000
-        assertEq(recordedRate, 2_400_000, "Defect reproduced: batch 2 overwrote batch 1 bond rate");
+        // Total escrowed collateral equals sum of all minted batches
+        assertEq(gridUSD.balanceOf(address(escrow)), bond1 + bond2);
     }
 }
