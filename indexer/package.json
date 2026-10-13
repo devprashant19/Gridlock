@@ -1,28 +1,21 @@
 {
   "name": "gridlock-indexer",
   "version": "0.1.0",
+  "type": "module",
   "description": "Envio indexer for Gridlock GPU forwards",
   "scripts": {
     "codegen": "envio codegen",
     "dev": "envio dev",
     "start": "envio start",
     "typecheck": "tsc --noEmit",
-    "test": "ts-mocha --timeout 20000 test/**/*.test.ts",
+    "test": "vitest run",
     "sync": "node scripts/sync-addresses.mjs"
   },
   "devDependencies": {
-    "typescript": "^5.5.0",
-    "@types/node": "^22.0.0",
-    "mocha": "^10.7.0",
-    "@types/mocha": "^10.0.7",
-    "chai": "^4.5.0",
-    "@types/chai": "^4.3.17",
-    "ts-mocha": "^10.0.0"
-  },
-  "dependencies": {
-    "envio": "2.32.12"
-  },
-  "optionalDependencies": {
-    "generated": "./generated"
+    "@types/node": "^26.6.5",
+    "envio": "^3.14.0",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.4",
+    "yaml": "^2.9.1"
   }
 }
