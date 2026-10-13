@@ -1,3 +1,8 @@
+# Core entities for Gridlock GPU Forward Marketplace
+
+"""
+Represents a GPU infrastructure provider staking collateral and delivering GPU compute hours.
+"""
 type Provider @entity {
   id: ID!
   name: String!
@@ -10,6 +15,9 @@ type Provider @entity {
   slashedTotal: BigInt!
 }
 
+"""
+Represents a GPU-hour forward series (e.g. gT4-NOW, gH100-W43).
+"""
 type Series @entity {
   id: ID!
   symbol: String!
@@ -20,6 +28,9 @@ type Series @entity {
   openHours: BigInt!
 }
 
+"""
+Represents an individual GPU-hour delivery lifecycle from redemption to settlement.
+"""
 type Delivery @entity {
   id: ID!
   series: Series!
@@ -33,6 +44,9 @@ type Delivery @entity {
   toProvider: BigInt
 }
 
+"""
+Represents an oracle price publication for a given GPU class on a given day.
+"""
 type IndexPrint @entity {
   id: ID!
   gpuClass: String!
@@ -40,6 +54,9 @@ type IndexPrint @entity {
   priceE8: BigInt!
 }
 
+"""
+Represents an orderbook trade execution.
+"""
 type Trade @entity {
   id: ID!
   market: String!
