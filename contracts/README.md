@@ -40,17 +40,29 @@ export PATH="$HOME/.foundry/bin:$PATH"
 cd contracts && forge test -vvv
 ```
 
-Execution Results:
+Execution Results (Phases A1 & A2 Complete):
 - `test/Sanity.t.sol`: 4 passed, 0 failed
 - `test/GridUSD.t.sol`: 12 passed, 0 failed
 - `test/HourToken.t.sol`: 9 passed, 0 failed
 - `test/IndexOracle.t.sol`: 12 passed, 0 failed
 - `test/SeriesFactory.t.sol`: 7 passed, 0 failed
+- `test/CollateralMath.t.sol`: 5 passed, 0 failed
+- `test/DeliveryEscrowRegistration.t.sol`: 4 passed, 0 failed
+- `test/DeliveryEscrowMintValidation.t.sol`: 6 passed, 0 failed
+- `test/DeliveryEscrowMultiBatch.t.sol`: 1 passed, 0 failed
+- `test/DeliveryEscrowFIFO.t.sol`: 1 passed, 0 failed
+- `test/DeliveryEscrowWithdrawal.t.sol`: 7 passed, 0 failed
 
-**Total Suites**: 5  
-**Total Tests**: 44  
-**Passed**: 44 (100%)  
+**Total Suites**: 11  
+**Total Tests**: 68  
+**Passed**: 68 (100%)  
 **Failed**: 0  
 **Skipped**: 0  
 
-*Verification Note: No test relies on mock addresses or placeholder data from `deployments/testnet.json`. All test suites instantiate deterministic isolated environments via `GridlockTestBase`.*
+## 5. Verified Collateral & Accounting Invariants
+
+1. **Provider Registration**: `DeliveryEscrow.mint()` strictly reverts with `"Provider not registered"` unless the provider called `registerProvider()`.
+2. **Tranche-Safe Multi-Batch Collateral**: Subsequent mint batches calculate a weighted-average `bondPerHour`, guaranteeing that historical bond amounts are fully preserved and total escrowed collateral exactly matches all outstanding capacity.
+3. **FIFO Allocation**: Redemptions walk the provider queue in strict arrival order, selecting the first provider capable of fulfilling the requested hours.
+4. **Unsold Withdrawal Safety**: Providers can only withdraw unsold hours after the series window has closed. All collateral backing assigned deliveries remains locked and immune to withdrawal.
+
