@@ -3,17 +3,118 @@
 @tailwind utilities;
 
 :root {
-  --background: #0b0e14;
-  --foreground: #ededed;
+  --background: #06080D;
+  --foreground: #e6edf3;
+  --monad: #836ef9;
+  --cyan: #00f5d4;
+  --pass: #10b981;
+  --degraded: #f59e0b;
+  --fail: #ff0055;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Cyber-grid tactical matrix backdrop */
+.bg-cyber-grid {
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Subtle holographic scanline */
+.scanlines {
+  position: relative;
+}
+.scanlines::after {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+  background-size: 100% 4px;
+  z-index: 20;
+  pointer-events: none;
+  opacity: 0.25;
+}
+
+/* Tactical HUD corner bracket styling */
+.hud-box {
+  position: relative;
+  background: rgba(14, 18, 27, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+}
+.hud-box::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 8px;
+  height: 8px;
+  border-top: 2px solid var(--monad);
+  border-left: 2px solid var(--monad);
+  pointer-events: none;
+}
+.hud-box::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 8px;
+  height: 8px;
+  border-bottom: 2px solid var(--monad);
+  border-right: 2px solid var(--monad);
+  pointer-events: none;
+}
+
+/* Luminous Glow utilities */
+.glow-monad {
+  box-shadow: 0 0 20px -3px rgba(131, 110, 249, 0.35);
+}
+.glow-cyan {
+  box-shadow: 0 0 20px -3px rgba(0, 245, 212, 0.35);
+}
+.glow-pass {
+  box-shadow: 0 0 20px -3px rgba(16, 185, 129, 0.35);
+}
+.glow-fail {
+  box-shadow: 0 0 25px -2px rgba(255, 0, 85, 0.45);
+}
+
+/* Tabular Mono Numeral Standards */
+.font-tabular {
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sleek Scrollbars */
+.sleek-scroll::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.sleek-scroll::-webkit-scrollbar-track {
+  background: rgba(11, 14, 20, 0.6);
+}
+.sleek-scroll::-webkit-scrollbar-thumb {
+  background: rgba(43, 50, 72, 0.8);
+  border-radius: 3px;
+}
+.sleek-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--monad);
 }
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
 input[type="number"] { -moz-appearance: textfield; }
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

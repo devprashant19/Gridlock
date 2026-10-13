@@ -11,7 +11,19 @@ import { fmtDate, fmtNum, hoursFromWei } from "@/lib/format";
 import { useNow, usePoll, useTx } from "@/lib/hooks";
 import { useWallet } from "@/lib/wallet/WalletProvider";
 import { DeliveryList } from "@/components/DeliveryList";
-import { Button, Card, ErrorBox, Field, GasWarning, MockBanner, PageTitle, SignInGate, Spinner, inputCls } from "@/components/ui";
+import {
+  Button,
+  Card,
+  ErrorBox,
+  Field,
+  GasWarning,
+  MockBanner,
+  PageTitle,
+  SignInGate,
+  Spinner,
+  inputCls,
+  Badge,
+} from "@/components/ui";
 
 export default function HoursPage() {
   const { session } = useWallet();
@@ -19,11 +31,20 @@ export default function HoursPage() {
   const { write, pending } = useTx();
   const now = useNow(10000) / 1000;
 
-  const bal = usePoll(() => (session ? readBalances(session.address) : Promise.resolve(undefined)), [session?.address], 10000);
-  const mine = usePoll(
-    async () => (session ? (await scanDeliveries()).filter((d) => d.buyer.toLowerCase() === session.address.toLowerCase()).reverse() : []),
+  const bal = usePoll(
+    () => (session ? readBalances(session.address) : Promise.resolve(undefined)),
     [session?.address],
-    10000,
+    10000
+  );
+  const mine = usePoll(
+    async () =>
+      session
+        ? (await scanDeliveries())
+            .filter((d) => d.buyer.toLowerCase() === session.address.toLowerCase())
+            .reverse()
+        : [],
+    [session?.address],
+    10000
   );
 
   const openNow = SERIES.filter((s) => now >= s.windowStart && now <= s.windowEnd);
@@ -44,7 +65,11 @@ export default function HoursPage() {
         functionName: "redeem",
         args: [BigInt(s.seriesId), BigInt(h), pub],
       });
-      const ev = parseEventLogs({ abi: deliveryEscrowAbi, logs: receipt.logs, eventName: "DeliveryRequested" })[0];
+      const ev = parseEventLogs({
+        abi: deliveryEscrowAbi,
+        logs: receipt.logs,
+        eventName: "DeliveryRequested",
+      })[0];
       if (ev) router.push(`/delivery/${ev.args.deliveryId}`);
     } catch {
       /* toast already shown */
@@ -52,80 +77,136 @@ export default function HoursPage() {
   };
 
   return (
-    <>
-      <PageTitle title="My hours & deliveries" sub="Redeem HourTokens for a real GPU machine. Credentials come back encrypted to your passkey." />
+    <div className="space-y-6">
+      <PageTitle
+        title="My Compute Hours & Deliveries"
+        sub="Redeem onchain HourTokens for bare-metal GPU credentials. Machine passwords and SSH keys return encrypted to your passkey."
+      />
       <MockBanner />
       <GasWarning mon={bal.data?.mon} />
 
-      <SignInGate what="see your hours">
+      <SignInGate what="manage your compute holdings and redemptions">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card title="Your HourTokens">
+          {/* Inventory Wallet */}
+          <Card title="HourToken Inventory (Wallet)">
             {!bal.data ? (
               <Spinner />
             ) : (
-              <ul className="divide-y divide-grid-700">
-                {SERIES.map((x) => (
-                  <li key={x.symbol} className="py-3 flex justify-between items-center text-sm gap-2">
-                    <div>
-                      <div className="font-semibold">{x.symbol}</div>
-                      <div className="text-xs text-gray-500">
-                        {x.className} · {fmtDate(x.windowStart)} – {fmtDate(x.windowEnd)}
+              <div className="space-y-2.5">
+                {SERIES.map((x) => {
+                  const count = hoursFromWei(bal.data!.hours[x.symbol]);
+                  const isOpen = now >= x.windowStart && now <= x.windowEnd;
+                  return (
+                    <div
+                      key={x.symbol}
+                      className="p-3 rounded-xl bg-obsidian/70 border border-white/[0.06] hover:border-white/15 transition-colors flex justify-between items-center text-xs font-mono"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white text-sm">{x.symbol}</span>
+                          {isOpen ? (
+                            <Badge tone="pass">DELIVERY OPEN</Badge>
+                          ) : now < x.windowStart ? (
+                            <span className="text-[10px] text-gray-500">Opens {fmtDate(x.windowStart)}</span>
+                          ) : (
+                            <span className="text-[10px] text-gray-600">Expired</span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-gray-400 font-sans">
+                          {x.className} · {fmtDate(x.windowStart)} – {fmtDate(x.windowEnd)}
+                        </div>
+                      </div>
+
+                      <div className="text-right space-y-1">
+                        <div className="text-base font-bold text-grid-cyan">{fmtNum(count)} h</div>
+                        <Link
+                          href={`/market/${x.symbol}`}
+                          className="text-[11px] text-grid-monad hover:underline font-bold"
+                        >
+                          Trade on Kuru →
+                        </Link>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="font-mono">{fmtNum(hoursFromWei(bal.data!.hours[x.symbol]))} h</div>
-                      <Link href={`/market/${x.symbol}`} className="text-xs text-grid-monad underline">
-                        trade
-                      </Link>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                  );
+                })}
+              </div>
             )}
           </Card>
 
-          <Card title="Redeem for a machine">
-            <p className="text-xs text-gray-400">
-              Redeeming burns HourTokens and assigns the first provider in the FIFO queue. Your passkey&apos;s PRF output derives a
-              separate X25519 key (not your wallet key). Its public half goes onchain, so only you can decrypt the SSH credentials.
+          {/* Machine Redemption Terminal */}
+          <Card title="Physical Delivery Redemption Terminal">
+            <p className="text-xs text-gray-400 leading-relaxed">
+              Redeeming burns HourTokens and locks the provider in DeliveryEscrow. Your passkey PRF output automatically derives an
+              ephemeral X25519 keypair. Its public key is passed to the smart contract, ensuring only your device can decrypt the credentials.
             </p>
-            <div className="space-y-3">
-              <Field label="Series">
-                <select value={symbol} onChange={(e) => setSymbol(e.target.value)} className={inputCls}>
+
+            <div className="space-y-3.5">
+              <Field label="Choose Compute Series to Redeem">
+                <select
+                  value={symbol}
+                  onChange={(e) => setSymbol(e.target.value)}
+                  className={inputCls}
+                >
                   {SERIES.map((x) => (
                     <option key={x.symbol} value={x.symbol}>
-                      {x.symbol}
-                      {now < x.windowStart ? ` (opens ${fmtDate(x.windowStart)})` : now > x.windowEnd ? " (window closed)" : ""}
+                      {x.symbol} — {x.className}
+                      {now < x.windowStart
+                        ? ` (Opens ${fmtDate(x.windowStart)})`
+                        : now > x.windowEnd
+                        ? " (Window closed)"
+                        : " (Active Window)"}
                     </option>
                   ))}
                 </select>
               </Field>
-              <Field label="Hours" hint={`You hold ${fmtNum(owned)} h`}>
-                <input type="number" min="1" step="1" value={hours} onChange={(e) => setHours(e.target.value)} className={inputCls} />
+
+              <Field label="Hours to Redeem" hint={`Available: ${fmtNum(owned)} h`}>
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={hours}
+                  onChange={(e) => setHours(e.target.value)}
+                  className={inputCls}
+                />
               </Field>
+
               {session && (
-                <div className="text-xs text-gray-500 break-all">
-                  Delivery key: <span className="font-mono text-gray-300">{bytesToHex(session.deliveryKey.publicKey)}</span>
+                <div className="p-2.5 rounded-lg bg-obsidian border border-white/[0.06] text-xs font-mono space-y-1">
+                  <div className="text-[10px] uppercase text-gray-500">Mera Derived Public Key:</div>
+                  <div className="text-grid-cyan break-all text-[11px]">
+                    {bytesToHex(session.deliveryKey.publicKey)}
+                  </div>
                 </div>
               )}
-              {!inWindow && s && <ErrorBox>{s.symbol} can only be redeemed during its delivery window.</ErrorBox>}
-              <Button className="w-full !py-3" onClick={redeem} loading={pending} disabled={!inWindow || !(h >= 1) || h > owned}>
-                Redeem {h >= 1 ? h : ""}h & request machine
+
+              {!inWindow && s && (
+                <ErrorBox>{s.symbol} delivery window is not active. Redemption is only available during the window.</ErrorBox>
+              )}
+
+              <Button
+                className="w-full !py-3 tracking-wider font-mono text-sm"
+                onClick={redeem}
+                loading={pending}
+                disabled={!inWindow || !(h >= 1) || h > owned}
+              >
+                ⚡ BURN {h >= 1 ? `${h}h ` : ""}& REQUEST MACHINE PROVISION
               </Button>
             </div>
           </Card>
         </div>
 
-        <Card title="My deliveries" className="mt-6">
+        {/* My Deliveries History */}
+        <Card title="Active & Completed Machine Deliveries" className="mt-6">
           {mine.loading && !mine.data ? (
             <Spinner />
           ) : mine.error ? (
             <ErrorBox>{mine.error}</ErrorBox>
           ) : (
-            <DeliveryList items={mine.data ?? []} empty="No deliveries yet. Redeem some hours above." />
+            <DeliveryList items={mine.data ?? []} empty="No active deliveries. Redeem compute hours above to request a machine." />
           )}
         </Card>
       </SignInGate>
-    </>
+    </div>
   );
 }

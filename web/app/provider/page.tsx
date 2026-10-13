@@ -11,7 +11,20 @@ import { useNow, usePoll, useTx } from "@/lib/hooks";
 import { useToast } from "@/lib/toast";
 import { useWallet } from "@/lib/wallet/WalletProvider";
 import { DeliveryList } from "@/components/DeliveryList";
-import { Badge, Button, Card, ErrorBox, Field, GasWarning, MockBanner, PageTitle, SignInGate, Spinner, inputCls } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  ErrorBox,
+  Field,
+  GasWarning,
+  MockBanner,
+  PageTitle,
+  SignInGate,
+  Spinner,
+  inputCls,
+  StatMetric,
+} from "@/components/ui";
 
 export default function ProviderPage() {
   const { session } = useWallet();
@@ -20,43 +33,86 @@ export default function ProviderPage() {
   const bal = usePoll(() => (addr ? readBalances(addr) : Promise.resolve(undefined)), [addr], 15000);
   const idx = usePoll(readIndexPrices, [], 30000);
   const queue = usePoll(
-    async () => (addr ? (await scanDeliveries()).filter((d) => d.provider.toLowerCase() === addr.toLowerCase()).reverse() : []),
+    async () =>
+      addr ? (await scanDeliveries()).filter((d) => d.provider.toLowerCase() === addr.toLowerCase()).reverse() : [],
     [addr],
-    8000,
+    8000
   );
 
   const open = queue.data?.filter((d) => d.status === 1) ?? [];
   const rest = queue.data?.filter((d) => d.status !== 1) ?? [];
 
   return (
-    <>
-      <PageTitle title="Provider console" sub="Register, mint GPU-hours against a 120% bond, and provision machines for buyers." />
+    <div className="space-y-6">
+      <PageTitle
+        title="Compute Provider Operations Console"
+        sub="Register your node, mint forward HourTokens against a 120% collateral bond, and provision bare-metal instances for buyers."
+      />
       <MockBanner />
       <GasWarning mon={bal.data?.mon} />
 
-      <SignInGate what="provide compute">
+      <SignInGate what="access the compute provider operations console">
+        {/* Top Summary Stats */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <StatMetric
+            label="Node Status"
+            value={prov.data?.registered ? "VERIFIED" : "UNREGISTERED"}
+            positive={!!prov.data?.registered}
+            sub={prov.data?.name || "Register to appear on leaderboard"}
+          />
+          <StatMetric
+            label="gUSD Balance"
+            value={bal.data ? `${gusd(bal.data.gusd).toFixed(2)}` : "—"}
+            sub="Available collateral"
+          />
+          <StatMetric
+            label="Active Deliveries"
+            value={String(open.length)}
+            delta={open.length > 0 ? "ACTION DUE" : "CLEAN"}
+            positive={open.length === 0}
+            sub="Waiting for SSH encryption"
+          />
+          <StatMetric
+            label="Completed Sessions"
+            value={String(rest.length)}
+            sub="Historical delivery records"
+          />
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-6">
             <RegisterCard name={prov.data?.name} registered={prov.data?.registered} />
             <MintCard registered={!!prov.data?.registered} gusdBal={bal.data?.gusd} prices={idx.data} />
-            <Card title="Open capacity">
+
+            <Card title="Open Unredeemed Capacity Inventory">
               {!prov.data ? (
                 <Spinner />
               ) : (
-                <ul className="text-sm divide-y divide-grid-700">
+                <div className="space-y-2 text-xs font-mono">
                   {SERIES.map((s) => (
-                    <li key={s.symbol} className="py-2 flex justify-between">
-                      <span>{s.symbol}</span>
-                      <span className="font-mono">{prov.data!.openHours[s.symbol]?.toString() ?? "0"} h unsold/unredeemed</span>
-                    </li>
+                    <div
+                      key={s.symbol}
+                      className="p-2.5 rounded-lg bg-obsidian/70 border border-white/[0.06] flex justify-between items-center"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-grid-monad" />
+                        <span className="font-bold text-white">{s.symbol}</span>
+                      </div>
+                      <span className="text-gray-300">
+                        {prov.data!.openHours[s.symbol]?.toString() ?? "0"} h unsold
+                      </span>
+                    </div>
                   ))}
-                </ul>
+                </div>
               )}
             </Card>
           </div>
 
           <div className="space-y-6">
-            <Card title="Deliveries to provision" right={open.length ? <Badge tone="degraded">{open.length} waiting</Badge> : undefined}>
+            <Card
+              title="Deliveries Requiring Provisioning"
+              right={open.length ? <Badge tone="degraded" pulse>{open.length} ACTION DUE</Badge> : undefined}
+            >
               {queue.loading && !queue.data ? (
                 <Spinner />
               ) : queue.error ? (
@@ -68,16 +124,17 @@ export default function ProviderPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-gray-500">No buyer is waiting on you. Redemptions assigned to you show up here.</p>
+                <Empty>All deliveries provisioned. New redemptions assigned to your node appear here.</Empty>
               )}
             </Card>
-            <Card title="History">
-              <DeliveryList items={rest} empty="No past deliveries." />
+
+            <Card title="Past Deliveries & Settled Bonds">
+              <DeliveryList items={rest} empty="No past delivery records." />
             </Card>
           </div>
         </div>
       </SignInGate>
-    </>
+    </div>
   );
 }
 
@@ -85,29 +142,53 @@ function RegisterCard({ name, registered }: { name?: string; registered?: boolea
   const [v, setV] = useState("");
   const { write, pending } = useTx();
   return (
-    <Card title="Provider identity" right={registered ? <Badge tone="pass">Registered</Badge> : <Badge>Not registered</Badge>}>
-      {registered && <p className="text-sm">
-        Listed as <strong>{name}</strong> on the leaderboard.
-      </p>}
+    <Card
+      title="Provider Node Identity"
+      right={registered ? <Badge tone="pass">REGISTERED NODE</Badge> : <Badge tone="neutral">NOT REGISTERED</Badge>}
+    >
+      {registered && (
+        <p className="text-xs text-gray-300 font-mono">
+          Public Leaderboard Handle: <strong className="text-grid-cyan">{name}</strong>
+        </p>
+      )}
       <div className="flex gap-2">
-        <input value={v} onChange={(e) => setV(e.target.value)} placeholder={registered ? "Rename…" : "Provider name, e.g. HyperNode-BLR"} className={inputCls} />
+        <input
+          value={v}
+          onChange={(e) => setV(e.target.value)}
+          placeholder={registered ? "Rename node handle…" : "Provider identity handle (e.g. Lambda-H100-US)"}
+          className={inputCls}
+        />
         <Button
           onClick={() =>
-            write("Register provider", { address: CONTRACTS.deliveryEscrow, abi: deliveryEscrowAbi, functionName: "registerProvider", args: [v.trim()] })
+            write("Register Provider Node", {
+              address: CONTRACTS.deliveryEscrow,
+              abi: deliveryEscrowAbi,
+              functionName: "registerProvider",
+              args: [v.trim()],
+            })
               .then(() => setV(""))
               .catch(() => {})
           }
           loading={pending}
           disabled={!v.trim()}
+          className="shrink-0 font-mono text-xs !px-5"
         >
-          {registered ? "Update" : "Register"}
+          {registered ? "Update" : "Register Node"}
         </Button>
       </div>
     </Card>
   );
 }
 
-function MintCard({ registered, gusdBal, prices }: { registered: boolean; gusdBal?: bigint; prices?: Awaited<ReturnType<typeof readIndexPrices>> }) {
+function MintCard({
+  registered,
+  gusdBal,
+  prices,
+}: {
+  registered: boolean;
+  gusdBal?: bigint;
+  prices?: Awaited<ReturnType<typeof readIndexPrices>>;
+}) {
   const { session } = useWallet();
   const { write, pending } = useTx();
   const [symbol, setSymbol] = useState(SERIES[0]?.symbol ?? "");
@@ -127,7 +208,7 @@ function MintCard({ registered, gusdBal, prices }: { registered: boolean; gusdBa
         args: [session.address, CONTRACTS.deliveryEscrow],
       });
       if (allowance < bond) {
-        await write(`Approve ${gusd(bond).toFixed(2)} gUSD bond`, {
+        await write(`Approve ${gusd(bond).toFixed(2)} gUSD Bond`, {
           address: CONTRACTS.gridUSD,
           abi: gridUsdAbi,
           functionName: "approve",
@@ -146,44 +227,65 @@ function MintCard({ registered, gusdBal, prices }: { registered: boolean; gusdBa
   };
 
   return (
-    <Card title="Mint GPU-hours">
+    <Card title="Bonded Forward Token Minting">
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Series">
+        <Field label="Target Series">
           <select value={symbol} onChange={(e) => setSymbol(e.target.value)} className={inputCls}>
             {SERIES.map((x) => (
-              <option key={x.symbol}>{x.symbol}</option>
+              <option key={x.symbol} value={x.symbol}>
+                {x.symbol}
+              </option>
             ))}
           </select>
         </Field>
-        <Field label="Hours">
-          <input type="number" min="1" step="1" value={hours} onChange={(e) => setHours(e.target.value)} className={inputCls} />
+        <Field label="Hours Capacity">
+          <input
+            type="number"
+            min="1"
+            step="1"
+            value={hours}
+            onChange={(e) => setHours(e.target.value)}
+            className={inputCls}
+          />
         </Field>
       </div>
-      <div className="p-3 rounded-lg bg-grid-900 text-xs space-y-1.5">
-        <div className="flex justify-between">
-          <span className="text-gray-400">Index price ({s?.className})</span>
-          <span className="font-mono">{p ? `$${priceE8ToUsd(p.priceE8).toFixed(4)} / h` : "not published"}</span>
+
+      {/* Bond Formula Breakdown */}
+      <div className="p-3.5 rounded-xl bg-obsidian border border-white/[0.08] text-xs font-mono space-y-2">
+        <div className="flex justify-between items-center text-gray-400">
+          <span>Ornn Spot Index ({s?.className}):</span>
+          <span className="font-bold text-white">
+            {p ? `$${priceE8ToUsd(p.priceE8).toFixed(4)} / hr` : "Not published"}
+          </span>
         </div>
-        <div className="flex justify-between">
-          <span className="text-gray-400">Bond = hours × index × 1.2</span>
-          <span className="font-mono text-grid-monad font-bold">{bond !== undefined ? `${fmtNum(gusd(bond))} gUSD` : "—"}</span>
+        <div className="flex justify-between items-center text-gray-400 border-t border-white/[0.06] pt-1.5">
+          <span>120% Collateral Bond Required:</span>
+          <span className="font-bold text-grid-monad text-sm">
+            {bond !== undefined ? `${fmtNum(gusd(bond))} gUSD` : "—"}
+          </span>
         </div>
-        <div className="flex justify-between">
-          <span className="text-gray-400">Your gUSD</span>
-          <span className="font-mono">{gusdBal !== undefined ? fmtNum(gusd(gusdBal)) : "—"}</span>
+        <div className="flex justify-between items-center text-gray-400">
+          <span>Your gUSD Balance:</span>
+          <span className="text-white">{gusdBal !== undefined ? `${fmtNum(gusd(gusdBal))} gUSD` : "—"}</span>
         </div>
       </div>
-      {!registered && <p className="text-xs text-grid-degraded">Register first so buyers see your name on the leaderboard.</p>}
+
+      {!registered && (
+        <p className="text-xs text-grid-degraded font-mono">
+          ⚠ Register your node handle first so buyers recognize your node on the reputation wall.
+        </p>
+      )}
+
       <Button
-        className="w-full !py-3"
+        className="w-full !py-3 tracking-wider font-mono text-sm"
         onClick={mint}
         loading={pending}
         disabled={h < 1n || bond === undefined || (gusdBal !== undefined && bond > gusdBal)}
       >
-        Post bond & mint {h.toString()} HourTokens
+        ⚡ POST 120% BOND & MINT {h.toString()} HOURTOKENS
       </Button>
-      <p className="text-xs text-gray-500">
-        If you fail verification, the bond for that delivery goes to the buyer. Unsold hours can be withdrawn after the window closes.
+      <p className="text-[11px] text-gray-500 font-mono text-center">
+        If verifier grades machine below threshold, bond slashes to buyer · Unsold hours reclaimable
       </p>
     </Card>
   );
@@ -215,7 +317,7 @@ function ProvisionForm({ d }: { d: DeliveryView }) {
       toast.push({ kind: "error", text: (e as Error).message });
       return;
     }
-    write(`Provision delivery #${d.id}`, {
+    write(`Provision Delivery #${d.id}`, {
       address: CONTRACTS.deliveryEscrow,
       abi: deliveryEscrowAbi,
       functionName: "provision",
@@ -224,55 +326,91 @@ function ProvisionForm({ d }: { d: DeliveryView }) {
   };
 
   return (
-    <div className="p-4 rounded-lg bg-grid-900 border border-grid-700 space-y-3">
-      <div className="flex justify-between items-start gap-2">
+    <div className="p-4 rounded-xl bg-obsidian/90 border border-white/10 space-y-3 font-mono text-xs">
+      <div className="flex justify-between items-start gap-2 border-b border-white/[0.06] pb-2.5">
         <div>
-          <div className="font-bold">
+          <div className="font-bold text-white text-sm">
             Delivery #{d.id} · {s?.symbol}
           </div>
-          <div className="text-xs text-gray-400">
-            {d.hours.toString()} h · bond at stake {fmtNum(gusd(d.bondAmount))} gUSD
+          <div className="text-[11px] text-gray-400">
+            {d.hours.toString()} GPU-Hours · Bond at Stake:{" "}
+            <span className="text-grid-monad font-bold">{fmtNum(gusd(d.bondAmount))} gUSD</span>
           </div>
         </div>
-        <Badge tone={left > 0 ? "degraded" : "fail"}>{left > 0 ? `${fmtDuration(left)} left` : "deadline passed"}</Badge>
+        <Badge tone={left > 0 ? "degraded" : "fail"} pulse={left > 0}>
+          {left > 0 ? `${fmtDuration(left)} left` : "deadline expired"}
+        </Badge>
       </div>
-      {noKey && <ErrorBox>Buyer posted no encryption key; credentials can&apos;t be delivered privately.</ErrorBox>}
+
+      {noKey && <ErrorBox>Buyer posted no encryption public key; credentials cannot be securely delivered.</ErrorBox>}
+
       <div className="grid grid-cols-3 gap-2">
         <div className="col-span-2">
-          <Field label="Host">
-            <input value={c.host} onChange={(e) => set("host", e.target.value)} placeholder="203.0.113.7" className={inputCls} />
+          <Field label="Host / IP">
+            <input
+              value={c.host}
+              onChange={(e) => set("host", e.target.value)}
+              placeholder="198.51.100.42"
+              className={inputCls}
+            />
           </Field>
         </div>
-        <Field label="Port">
-          <input type="number" value={c.port} onChange={(e) => set("port", Number(e.target.value))} className={inputCls} />
+        <Field label="SSH Port">
+          <input
+            type="number"
+            value={c.port}
+            onChange={(e) => set("port", Number(e.target.value))}
+            className={inputCls}
+          />
         </Field>
-        <Field label="User">
-          <input value={c.username} onChange={(e) => set("username", e.target.value)} className={inputCls} />
+        <Field label="Username">
+          <input
+            value={c.username}
+            onChange={(e) => set("username", e.target.value)}
+            className={inputCls}
+          />
         </Field>
-        <Field label="Auth">
-          <select value={c.authType} onChange={(e) => set("authType", e.target.value as CredentialPayload["authType"])} className={inputCls}>
-            <option value="ssh-key">SSH key</option>
+        <Field label="Auth Method">
+          <select
+            value={c.authType}
+            onChange={(e) => set("authType", e.target.value as CredentialPayload["authType"])}
+            className={inputCls}
+          >
+            <option value="ssh-key">SSH Private Key</option>
             <option value="password">Password</option>
           </select>
         </Field>
-        <Field label="GPUs">
-          <input type="number" min="1" value={c.gpuCount} onChange={(e) => set("gpuCount", Number(e.target.value))} className={inputCls} />
+        <Field label="GPU Count">
+          <input
+            type="number"
+            min="1"
+            value={c.gpuCount}
+            onChange={(e) => set("gpuCount", Number(e.target.value))}
+            className={inputCls}
+          />
         </Field>
       </div>
-      <Field label={c.authType === "ssh-key" ? "Private key" : "Password"}>
+
+      <Field label={c.authType === "ssh-key" ? "Private Key (Ed25519 / RSA)" : "Machine Password"}>
         <textarea
           rows={3}
           value={c.keyOrPassword}
           onChange={(e) => set("keyOrPassword", e.target.value)}
           placeholder={c.authType === "ssh-key" ? "-----BEGIN OPENSSH PRIVATE KEY-----" : ""}
-          className={`${inputCls} font-mono text-xs`}
+          className={`${inputCls} font-mono text-[11px]`}
         />
       </Field>
-      <Button className="w-full" onClick={submit} loading={pending} disabled={noKey || !c.host || !c.keyOrPassword}>
-        Encrypt to buyer&apos;s passkey & provision
+
+      <Button
+        className="w-full !py-3 tracking-wider font-mono text-xs"
+        onClick={submit}
+        loading={pending}
+        disabled={noKey || !c.host || !c.keyOrPassword}
+      >
+        🔒 ENCRYPT TO BUYER&apos;S PASSKEY & BROADCAST PROVISION
       </Button>
-      <p className="text-[11px] text-gray-500">
-        X25519 + XChaCha20-Poly1305 in your browser. Only ciphertext goes onchain. Plaintext never leaves this page.
+      <p className="text-[10px] text-gray-500 text-center font-mono">
+        Encrypted with X25519 + ChaCha20-Poly1305. Plaintext credentials never leave this browser.
       </p>
     </div>
   );
