@@ -4,7 +4,7 @@ Real-time blockchain indexer for Gridlock GPU forwards on Monad Testnet, built w
 
 ## Overview
 
-The Gridlock Envio Indexer ingests on-chain events emitted by Gridlock smart contracts (`DeliveryEscrow`, `SeriesFactory`, `IndexOracle`) and provides an entity-relational GraphQL API consumed by the Gridlock frontend web application, trading bots, and telemetry dashboards.
+The Gridlock Envio Indexer ingests on-chain events emitted by Gridlock smart contracts (`DeliveryEscrow`, `SeriesFactory`, `IndexOracle`) and exposes an entity-relational GraphQL API consumed by the Gridlock frontend web application, trading bots, and telemetry dashboards.
 
 ## Prerequisites
 
@@ -22,9 +22,11 @@ indexer/
 ├── config.yaml               # Network, contract addresses, and event source declarations
 ├── schema.graphql            # GraphQL entity models (Provider, Series, Delivery, etc.)
 ├── src/
-│   └── EventHandlers.ts      # HyperIndex event handler implementation
+│   ├── EventHandlers.ts      # HyperIndex event handler implementation
+│   └── diagnostics.ts        # Self-diagnostic utility
 ├── test/                     # Unit and lifecycle integration tests using createTestIndexer
-├── queries/                  # Standard frontend GraphQL queries (leaderboard, forward curve)
+│   └── fixtures/             # Deterministic event fixtures
+├── queries/                  # Standard frontend GraphQL queries (leaderboard, forward curve, etc.)
 ├── envio-env.d.ts            # Type reference linking .envio/types.d.ts into the envio module
 ├── tsconfig.json             # TypeScript configuration
 └── package.json              # Scripts and dependencies
@@ -59,3 +61,20 @@ npm run dev
 3. **`Delivery`**: Complete delivery lifecycle states (`REQUESTED`, `PROVISIONED`, `SETTLED`, `TIMEOUT`), cryptographic public keys, and verdict outcomes.
 4. **`IndexPrint`**: Spot GPU index prices published by the Ornn oracle (`gpuClass`, `dayKey`, `priceE8`).
 5. **`Trade`**: Orderbook executions on Monad.
+
+## Available GraphQL Queries
+
+Predefined queries are in the `queries/` directory:
+- `queries/leaderboard.graphql`: Provider rankings by fewest failures and highest passes.
+- `queries/series.graphql`: GPU forward series and open hour capacities.
+- `queries/deliveries.graphql`: Complete delivery lifecycle and buyer/provider filters.
+- `queries/settlements.graphql`: Terminal outcomes, benchmark TFLOPS, and bond payouts.
+- `queries/forward_curve.graphql`: Daily oracle index prices by GPU class.
+- `queries/pagination.graphql`: Pagination templates.
+
+## Envio Cloud Deployment
+
+1. Connect the repository to [Envio Cloud](https://envio.dev).
+2. Set root directory to `indexer` and config file to `config.yaml`.
+3. Set deployment branch to `feat/envio-indexer` (or `main`).
+4. Set `NEXT_PUBLIC_ENVIO_GRAPHQL` in the frontend environment to the resulting GraphQL endpoint.
