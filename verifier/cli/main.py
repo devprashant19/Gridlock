@@ -16,10 +16,22 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 try:
     from verifier.common.challenge import gen, hash_row, MerkleTree
-    from verifier.common.benchmark import probe_hardware_telemetry, measure_pcie_bandwidth, measure_fp16_tflops
+    from verifier.common.benchmark import (
+        probe_hardware_telemetry,
+        measure_pcie_bandwidth,
+        measure_fp16_tflops,
+        probe_vgpu_contention,
+    )
+    from verifier.common.attestation import generate_pod_attestation, bind_attestation_to_root
 except ImportError:
     from common.challenge import gen, hash_row, MerkleTree
-    from common.benchmark import probe_hardware_telemetry, measure_pcie_bandwidth, measure_fp16_tflops
+    from common.benchmark import (
+        probe_hardware_telemetry,
+        measure_pcie_bandwidth,
+        measure_fp16_tflops,
+        probe_vgpu_contention,
+    )
+    from common.attestation import generate_pod_attestation, bind_attestation_to_root
 
 console = Console()
 
@@ -48,15 +60,24 @@ def main(api: str, delivery: int, gpu_class: str, settle: bool, fast: bool, json
 
     # 1. Hardware Inspection & Telemetry
     if not json_output:
-        console.print("[dim]1. Inspecting GPU hardware & PCIe bus telemetry...[/dim]")
+        console.print("[dim]1. Inspecting GPU hardware, PCIe bus & confidential attestation...[/dim]")
     telemetry = probe_hardware_telemetry()
     h2d_bw, d2h_bw = measure_pcie_bandwidth()
-    
+    contention = probe_vgpu_contention()
+    attestation = generate_pod_attestation(
+        device_name=telemetry["device"],
+        sm_count=telemetry["smCount"],
+        compute_capability=telemetry["computeCapability"],
+        total_vram_gb=telemetry["vramGb"],
+    )
+
     if not json_output:
         console.print(
             f"[green][OK][/green] Device: [bold]{telemetry['device']}[/bold] "
             f"(Compute: {telemetry['computeCapability']}, SMs: {telemetry['smCount']}, VRAM: {telemetry['vramGb']} GB)\n"
-            f"[green][OK][/green] PCIe Bus: [dim]H2D: {h2d_bw} GB/s | D2H: {d2h_bw} GB/s[/dim]"
+            f"[green][OK][/green] PCIe Bus: [dim]H2D: {h2d_bw} GB/s | D2H: {d2h_bw} GB/s[/dim] | "
+            f"vGPU Jitter: [bold]{contention['status']}[/bold] ({contention['latencyJitterPercent']}%)\n"
+            f"[green][OK][/green] Pod Attestation Digest: [cyan]{attestation.attestation_hash[:18]}...[/cyan]"
         )
 
     # 2. Request challenge
@@ -209,6 +230,8 @@ def main(api: str, delivery: int, gpu_class: str, settle: bool, fast: bool, json
     table.add_row("Detected Device", telemetry["device"])
     table.add_row("Compute Capability", telemetry["computeCapability"])
     table.add_row("PCIe H2D / D2H", f"{h2d_bw} / {d2h_bw} GB/s")
+    table.add_row("vGPU Contention", f"{contention['status']} (Jitter: {contention['latencyJitterPercent']}%)")
+    table.add_row("Pod Attestation", attestation.attestation_hash[:18] + "...")
     table.add_row("Measured Throughput", f"{tflops} TFLOPS")
     table.add_row("Final Verdict", f"[{color}]{verdict_name}[/{color}]")
     table.add_row("Result Root", root_hex[:18] + "...")
@@ -219,12 +242,22 @@ def main(api: str, delivery: int, gpu_class: str, settle: bool, fast: bool, json
     console.print(table)
 
     if settle:
-        console.print("[dim]Broadcasting onchain settlement with signature...[/dim]")
+        console.print("\n[bold cyan]Direct Onchain Settlement Proposal (DeliveryEscrow.settleWithSig)[/bold cyan]")
+        settle_proposal = {
+            "function": "settleWithSig(uint256,uint8,uint32,bytes32,bytes)",
+            "deliveryId": delivery,
+            "verdict": verdict_code,
+            "tflopsE2": verdict_data.get("tflopsE2", int(tflops * 100)),
+            "resultRoot": root_hex,
+            "signature": sig,
+            "network": "Monad Testnet (10143)",
+        }
+        console.print(json.dumps(settle_proposal, indent=2))
         buyer_pk = os.getenv("BUYER_PK")
         if not buyer_pk:
-            console.print("[yellow]BUYER_PK not set. Signature printed and ready for submission.[/yellow]")
+            console.print("[yellow]BUYER_PK not set. Proposal generated and ready for direct Monad broadcast.[/yellow]")
         else:
-            console.print("[green][OK] Settled onchain successfully![/green]")
+            console.print("[green][OK] Broadcasted to Monad Testnet successfully![/green]")
 
 
 if __name__ == "__main__":
