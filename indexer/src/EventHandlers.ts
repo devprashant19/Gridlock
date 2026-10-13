@@ -102,6 +102,20 @@ indexer.onEvent(
     const buyer = event.params.buyer.toLowerCase();
     const providerId = event.params.provider.toLowerCase();
 
+    // Ensure series entity exists if indexed mid-stream
+    const series = await context.Series.get(seriesId);
+    if (!series) {
+      context.Series.set({
+        id: seriesId,
+        symbol: `Series-${seriesId}`,
+        gpuClass: "unknown",
+        token: "0x0000000000000000000000000000000000000000",
+        market: undefined,
+        lastPrice: undefined,
+        openHours: 0n,
+      });
+    }
+
     // Ensure provider entity exists if assigned
     const provider = await context.Provider.get(providerId);
     if (!provider) {
@@ -159,52 +173,67 @@ indexer.onEvent(
     const toBuyer = event.params.toBuyer;
     const toProvider = event.params.toProvider;
 
-    const delivery = await context.Delivery.get(deliveryId);
-    if (delivery) {
-      if (delivery.status === "SETTLED") {
-        // Idempotency: delivery has already been settled, do not re-increment provider stats
-        return;
-      }
-
+    let delivery = await context.Delivery.get(deliveryId);
+    if (!delivery) {
+      // Reconcile missing prior event in partial history
       context.Delivery.set({
-        ...delivery,
+        id: deliveryId,
+        series_id: "unknown",
+        buyer: "0x0000000000000000000000000000000000000000",
+        provider_id: "0x0000000000000000000000000000000000000000",
+        hours: 0n,
         status: "SETTLED",
         verdict: verdict,
         tflopsE2: tflopsE2,
         toBuyer: toBuyer,
         toProvider: toProvider,
       });
+      return;
+    }
 
-      // Update provider stats
-      const provider = await context.Provider.get(delivery.provider_id);
-      if (provider) {
-        let passes = provider.passes;
-        let degraded = provider.degraded;
-        let fails = provider.fails;
-        let hoursDelivered = provider.hoursDelivered;
-        let slashedTotal = provider.slashedTotal;
+    if (delivery.status === "SETTLED") {
+      // Idempotency: delivery has already been settled, do not re-increment provider stats
+      return;
+    }
 
-        if (verdict === 1) {
-          passes += 1;
-          hoursDelivered += delivery.hours;
-        } else if (verdict === 2) {
-          degraded += 1;
-          hoursDelivered += delivery.hours;
-          slashedTotal += toBuyer;
-        } else if (verdict === 3) {
-          fails += 1;
-          slashedTotal += toBuyer;
-        }
+    context.Delivery.set({
+      ...delivery,
+      status: "SETTLED",
+      verdict: verdict,
+      tflopsE2: tflopsE2,
+      toBuyer: toBuyer,
+      toProvider: toProvider,
+    });
 
-        context.Provider.set({
-          ...provider,
-          passes,
-          degraded,
-          fails,
-          hoursDelivered,
-          slashedTotal,
-        });
+    // Update provider stats
+    const provider = await context.Provider.get(delivery.provider_id);
+    if (provider) {
+      let passes = provider.passes;
+      let degraded = provider.degraded;
+      let fails = provider.fails;
+      let hoursDelivered = provider.hoursDelivered;
+      let slashedTotal = provider.slashedTotal;
+
+      if (verdict === 1) {
+        passes += 1;
+        hoursDelivered += delivery.hours;
+      } else if (verdict === 2) {
+        degraded += 1;
+        hoursDelivered += delivery.hours;
+        slashedTotal += toBuyer;
+      } else if (verdict === 3) {
+        fails += 1;
+        slashedTotal += toBuyer;
       }
+
+      context.Provider.set({
+        ...provider,
+        passes,
+        degraded,
+        fails,
+        hoursDelivered,
+        slashedTotal,
+      });
     }
   }
 );
@@ -217,31 +246,47 @@ indexer.onEvent(
     const toBuyer = event.params.toBuyer;
     const toProvider = event.params.toProvider;
 
-    const delivery = await context.Delivery.get(deliveryId);
-    if (delivery) {
-      if (delivery.status === "TIMEOUT") {
-        // Idempotency: timeout already claimed, do not re-increment provider timeouts
-        return;
-      }
-
+    let delivery = await context.Delivery.get(deliveryId);
+    if (!delivery) {
+      // Reconcile missing prior event in partial history
       context.Delivery.set({
-        ...delivery,
+        id: deliveryId,
+        series_id: "unknown",
+        buyer: "0x0000000000000000000000000000000000000000",
+        provider_id: "0x0000000000000000000000000000000000000000",
+        hours: 0n,
         status: "TIMEOUT",
+        verdict: undefined,
+        tflopsE2: undefined,
         toBuyer: toBuyer,
         toProvider: toProvider,
       });
+      return;
+    }
 
-      const provider = await context.Provider.get(delivery.provider_id);
-      if (provider) {
-        context.Provider.set({
-          ...provider,
-          timeouts: provider.timeouts + 1,
-          slashedTotal: provider.slashedTotal + toBuyer,
-        });
-      }
+    if (delivery.status === "TIMEOUT") {
+      // Idempotency: timeout already claimed, do not re-increment provider timeouts
+      return;
+    }
+
+    context.Delivery.set({
+      ...delivery,
+      status: "TIMEOUT",
+      toBuyer: toBuyer,
+      toProvider: toProvider,
+    });
+
+    const provider = await context.Provider.get(delivery.provider_id);
+    if (provider) {
+      context.Provider.set({
+        ...provider,
+        timeouts: provider.timeouts + 1,
+        slashedTotal: provider.slashedTotal + toBuyer,
+      });
     }
   }
 );
+
 
 
 // PrintPublished handler
