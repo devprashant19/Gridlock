@@ -5,10 +5,12 @@
   "scripts": {
     "codegen": "envio codegen",
     "dev": "envio dev",
-    "test": "envio test"
+    "test": "vitest run"
   },
   "devDependencies": {
-    "envio": "^2.0.0",
-    "typescript": "^5.5.0"
+    "@types/node": "^26.6.5",
+    "envio": "^3.14.0",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.4"
   }
 }
