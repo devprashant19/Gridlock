@@ -210,6 +210,7 @@ contract DeliveryEscrow {
         Delivery storage d = deliveries[deliveryId];
         require(msg.sender == d.provider, "Only assigned provider");
         require(d.status == Status.Requested, "Invalid status");
+        require(block.timestamp <= d.deadline, "Provisioning deadline passed");
 
         d.status = Status.Provisioned;
         d.provisionedAt = uint64(block.timestamp);
