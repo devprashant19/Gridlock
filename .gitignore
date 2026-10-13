@@ -50,7 +50,8 @@ contracts/broadcast/
 contracts/.gas-snapshot
 cache/
 out/
-broadcast/
+/broadcast/
+!cre/broadcast/
 .gas-snapshot
 
 # Envio
