@@ -5,10 +5,24 @@
   "scripts": {
     "codegen": "envio codegen",
     "dev": "envio dev",
-    "test": "envio test"
+    "start": "envio start",
+    "typecheck": "tsc --noEmit",
+    "test": "ts-mocha --timeout 20000 test/**/*.test.ts",
+    "sync": "node scripts/sync-addresses.mjs"
   },
   "devDependencies": {
-    "envio": "^2.0.0",
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "@types/node": "^22.0.0",
+    "mocha": "^10.7.0",
+    "@types/mocha": "^10.0.7",
+    "chai": "^4.5.0",
+    "@types/chai": "^4.3.17",
+    "ts-mocha": "^10.0.0"
+  },
+  "dependencies": {
+    "envio": "2.32.12"
+  },
+  "optionalDependencies": {
+    "generated": "./generated"
   }
 }

@@ -1,8 +1,14 @@
+# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
+# Addresses + start_block are rewritten from ../deployments/testnet.json by `pnpm sync`.
 name: gridlock-indexer
-description: Real-time indexer for Gridlock GPU forwards on Monad
-chains:
-  - id: 10143
-    start_block: 0
+description: Real-time indexer for Gridlock GPU-hour forwards on Monad
+unordered_multichain_mode: true
+field_selection:
+  transaction_fields:
+    - hash
+networks:
+  - id: 10143 # Monad testnet (HyperSync: https://monad-testnet.hypersync.xyz)
+    start_block: 1234567
     contracts:
       - name: DeliveryEscrow
         address: "0x4444444444444444444444444444444444444444"
@@ -24,3 +30,13 @@ chains:
         handler: src/EventHandlers.ts
         events:
           - event: PrintPublished(bytes32 indexed gpuClass, uint64 indexed dayKey, uint128 priceE8)
+      # One Kuru OrderBook per series market. Trade signature from @kuru-labs/kuru-sdk abi/OrderBook.json
+      - name: KuruOrderBook
+        address:
+          - "0x8888888888888888888888888888888888888888"
+          - "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          - "0xcccccccccccccccccccccccccccccccccccccccc"
+          - "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        handler: src/EventHandlers.ts
+        events:
+          - event: Trade(uint40 orderId, address makerAddress, bool isBuy, uint256 price, uint96 updatedSize, address takerAddress, address txOrigin, uint96 filledSize)
