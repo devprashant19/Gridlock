@@ -5,11 +5,13 @@ import secrets
 import sys
 import time
 from typing import Any, Dict, List, Optional
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, PlainTextResponse
 from pydantic import BaseModel
 import numpy as np
+
+SERVER_START_TIME = time.time()
 
 try:
     from eth_account import Account
@@ -103,6 +105,8 @@ class CommitRequest(BaseModel):
     device: str
     h2dGbps: Optional[float] = None
     d2hGbps: Optional[float] = None
+    attestationHash: Optional[str] = None
+    vgpuStatus: Optional[str] = None
 
 
 class RowData(BaseModel):
@@ -177,6 +181,8 @@ def commit_result(req: CommitRequest):
         "device": req.device,
         "h2dGbps": req.h2dGbps,
         "d2hGbps": req.d2hGbps,
+        "attestationHash": req.attestationHash,
+        "vgpuStatus": req.vgpuStatus or "CLEAN",
         "sampleIndices": sample_indices,
         "committedAt": time.time(),
         "status": "COMMITTED",
@@ -237,12 +243,14 @@ def reveal_result(req: RevealRequest):
             verification_failed = True
             break
 
+    vgpu_status = session.get("vgpuStatus", "CLEAN")
+
     # Verdict Evaluation
     # 1: PASS, 2: DEGRADED, 3: FAIL
     if verification_failed or tflops < 0.5 * rated_tflops:
         verdict = 3
         verdict_name = "FAIL"
-    elif tflops < 0.7 * rated_tflops:
+    elif tflops < 0.7 * rated_tflops or vgpu_status == "THROTTLED":
         verdict = 2
         verdict_name = "DEGRADED"
     else:
@@ -313,6 +321,8 @@ def reveal_result(req: RevealRequest):
         "verdictName": verdict_name,
         "tflopsE2": tflops_e2,
         "resultRoot": claimed_root_hex if claimed_root_hex.startswith("0x") else "0x" + claimed_root_hex,
+        "attestationHash": session.get("attestationHash"),
+        "vgpuStatus": vgpu_status,
         "signature": signature,
         "reportBytes": report_bytes_hex,
         "timestamp": int(time.time()),
@@ -374,6 +384,162 @@ async def stream_verdict(delivery_id: int):
         yield f"data: {json.dumps({'deliveryId': delivery_id, 'status': 'TIMEOUT'})}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+@app.get("/telemetry/summary")
+def get_telemetry_summary():
+    """
+    High-level telemetry and verification analytics summary for dashboards and agents.
+    """
+    total_verdicts = len(verdicts)
+    breakdown = {"PASS": 0, "DEGRADED": 0, "FAIL": 0}
+    by_gpu_class: Dict[str, Dict[str, Any]] = {}
+    total_tflops = 0.0
+    vgpu_throttled_count = 0
+
+    for v in verdicts.values():
+        name = v.get("verdictName", "FAIL")
+        breakdown[name] = breakdown.get(name, 0) + 1
+        tflops = v.get("tflopsE2", 0) / 100.0
+        total_tflops += tflops
+        if v.get("vgpuStatus") == "THROTTLED":
+            vgpu_throttled_count += 1
+
+        sess = sessions.get(v.get("deliveryId"))
+        gpu_cls = sess.get("gpuClass", "UNKNOWN") if sess else "UNKNOWN"
+        if gpu_cls not in by_gpu_class:
+            rated = CLASSES_DATA.get(gpu_cls, {}).get("ratedTflops", 0.0)
+            by_gpu_class[gpu_cls] = {"count": 0, "totalTflops": 0.0, "ratedTflops": rated}
+        by_gpu_class[gpu_cls]["count"] += 1
+        by_gpu_class[gpu_cls]["totalTflops"] += tflops
+
+    avg_tflops = round(total_tflops / total_verdicts, 2) if total_verdicts > 0 else 0.0
+    for cls_info in by_gpu_class.values():
+        cnt = cls_info["count"]
+        cls_info["avgTflops"] = round(cls_info["totalTflops"] / cnt, 2) if cnt > 0 else 0.0
+        del cls_info["totalTflops"]
+
+    return {
+        "status": "online",
+        "activeSessions": len(sessions),
+        "totalVerdicts": total_verdicts,
+        "breakdown": breakdown,
+        "averageTflops": avg_tflops,
+        "byGpuClass": by_gpu_class,
+        "vgpuContentionIncidents": vgpu_throttled_count,
+        "uptimeSeconds": round(time.time() - SERVER_START_TIME, 2),
+    }
+
+
+@app.get("/metrics", response_class=PlainTextResponse)
+def get_prometheus_metrics():
+    """
+    Prometheus metrics exposition endpoint for institutional telemetry monitoring.
+    """
+    pass_cnt = sum(1 for v in verdicts.values() if v.get("verdictName") == "PASS")
+    deg_cnt = sum(1 for v in verdicts.values() if v.get("verdictName") == "DEGRADED")
+    fail_cnt = sum(1 for v in verdicts.values() if v.get("verdictName") == "FAIL")
+    tot_cnt = len(verdicts)
+    throttled_cnt = sum(1 for v in verdicts.values() if v.get("vgpuStatus") == "THROTTLED")
+    tot_tflops = sum(v.get("tflopsE2", 0) / 100.0 for v in verdicts.values())
+    avg_tflops = (tot_tflops / tot_cnt) if tot_cnt > 0 else 0.0
+    uptime = time.time() - SERVER_START_TIME
+
+    lines = [
+        "# HELP gridlock_verifier_active_sessions Number of currently active verification sessions",
+        "# TYPE gridlock_verifier_active_sessions gauge",
+        f"gridlock_verifier_active_sessions {len(sessions)}",
+        "",
+        "# HELP gridlock_verifier_verdicts_total Total verdicts generated by verifier",
+        "# TYPE gridlock_verifier_verdicts_total counter",
+        f'gridlock_verifier_verdicts_total{{status="PASS"}} {pass_cnt}',
+        f'gridlock_verifier_verdicts_total{{status="DEGRADED"}} {deg_cnt}',
+        f'gridlock_verifier_verdicts_total{{status="FAIL"}} {fail_cnt}',
+        f'gridlock_verifier_verdicts_total{{status="ALL"}} {tot_cnt}',
+        "",
+        "# HELP gridlock_verifier_vgpu_contention_total Count of vGPU contention or throttling events detected",
+        "# TYPE gridlock_verifier_vgpu_contention_total counter",
+        f"gridlock_verifier_vgpu_contention_total {throttled_cnt}",
+        "",
+        "# HELP gridlock_verifier_tflops_average Average measured TFLOPS across all verdicts",
+        "# TYPE gridlock_verifier_tflops_average gauge",
+        f"gridlock_verifier_tflops_average {avg_tflops:.2f}",
+        "",
+        "# HELP gridlock_verifier_uptime_seconds Total runtime of verifier server in seconds",
+        "# TYPE gridlock_verifier_uptime_seconds gauge",
+        f"gridlock_verifier_uptime_seconds {uptime:.2f}",
+        ""
+    ]
+    return "\n".join(lines)
+
+
+@app.websocket("/ws/verify/{delivery_id}")
+async def websocket_verify_endpoint(websocket: WebSocket, delivery_id: int):
+    """
+    Real-time bidirectional WebSocket stream for verification progress and verdicts.
+    Provides live telemetry feed for frontend UI widgets and agent listeners.
+    """
+    await websocket.accept()
+    try:
+        sess = sessions.get(delivery_id)
+        current_verdict = verdicts.get(delivery_id)
+        await websocket.send_json({
+            "event": "connected",
+            "deliveryId": delivery_id,
+            "session": sess,
+            "hasVerdict": current_verdict is not None,
+            "status": "VERIFIED" if current_verdict else (sess.get("status") if sess else "UNKNOWN")
+        })
+
+        if current_verdict:
+            await websocket.send_json({
+                "event": "verdict",
+                "deliveryId": delivery_id,
+                "data": current_verdict
+            })
+
+        for _ in range(60):
+            try:
+                data = await asyncio.wait_for(websocket.receive_json(), timeout=1.0)
+                msg_type = data.get("type") or data.get("action")
+                if msg_type == "ping":
+                    await websocket.send_json({"type": "pong", "time": time.time()})
+                elif msg_type == "status":
+                    await websocket.send_json({
+                        "type": "status_response",
+                        "deliveryId": delivery_id,
+                        "session": sessions.get(delivery_id),
+                        "verdict": verdicts.get(delivery_id)
+                    })
+            except asyncio.TimeoutError:
+                pass
+
+            v = verdicts.get(delivery_id)
+            if v and not current_verdict:
+                current_verdict = v
+                await websocket.send_json({
+                    "event": "verdict",
+                    "deliveryId": delivery_id,
+                    "data": current_verdict
+                })
+                break
+            elif not v and delivery_id in sessions:
+                s = sessions[delivery_id]
+                elapsed = round(time.time() - s.get("startedAt", time.time()), 2)
+                await websocket.send_json({
+                    "event": "progress",
+                    "deliveryId": delivery_id,
+                    "status": s.get("status"),
+                    "elapsedSeconds": elapsed,
+                    "gpuClass": s.get("gpuClass")
+                })
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        try:
+            await websocket.send_json({"event": "error", "message": str(e)})
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":

@@ -291,3 +291,102 @@ def test_telemetry_and_benchmark_probe():
 
     tflops = measure_fp16_tflops()
     assert tflops > 0
+
+
+def test_telemetry_summary_and_metrics_endpoints():
+    client = TestClient(app)
+    delivery_id = 201
+
+    # Empty summary baseline
+    summary_empty = client.get("/telemetry/summary").json()
+    assert summary_empty["status"] == "online"
+    assert summary_empty["totalVerdicts"] == 0
+
+    # Challenge, commit, reveal
+    res = client.post("/challenge", json={"deliveryId": delivery_id, "gpuClass": "T4", "n": 64})
+    ch_data = res.json()
+    A, B = gen(ch_data["seed"], 64, 3)
+    C = (A.astype(np.int64) @ B.astype(np.int64)).astype(np.int64)
+    tree = MerkleTree([hash_row(C[r]) for r in range(64)])
+
+    client.post("/commit", json={
+        "deliveryId": delivery_id,
+        "root": "0x" + tree.root.hex(),
+        "tflops": 8.1,
+        "sm": 40,
+        "device": "Tesla T4",
+    })
+
+    client.post("/reveal", json={
+        "deliveryId": delivery_id,
+        "rows": [{"index": i, "data": "0x" + C[i].tobytes().hex()} for i in sessions[delivery_id]["sampleIndices"]],
+        "proofs": [tree.get_proof(i) for i in sessions[delivery_id]["sampleIndices"]],
+    })
+
+    # Test /telemetry/summary
+    sum_res = client.get("/telemetry/summary")
+    assert sum_res.status_code == 200
+    sum_data = sum_res.json()
+    assert sum_data["totalVerdicts"] == 1
+    assert sum_data["breakdown"]["PASS"] == 1
+    assert sum_data["averageTflops"] == 8.1
+    assert "T4" in sum_data["byGpuClass"]
+
+    # Test /metrics
+    met_res = client.get("/metrics")
+    assert met_res.status_code == 200
+    assert "gridlock_verifier_active_sessions" in met_res.text
+    assert 'gridlock_verifier_verdicts_total{status="PASS"} 1' in met_res.text
+    assert "gridlock_verifier_tflops_average 8.10" in met_res.text
+
+
+def test_vgpu_throttled_causes_degraded_verdict():
+    client = TestClient(app)
+    delivery_id = 202
+
+    res = client.post("/challenge", json={"deliveryId": delivery_id, "gpuClass": "T4", "n": 64})
+    ch_data = res.json()
+    A, B = gen(ch_data["seed"], 64, 3)
+    C = (A.astype(np.int64) @ B.astype(np.int64)).astype(np.int64)
+    tree = MerkleTree([hash_row(C[r]) for r in range(64)])
+
+    # Commit with THROTTLED vGPU status
+    client.post("/commit", json={
+        "deliveryId": delivery_id,
+        "root": "0x" + tree.root.hex(),
+        "tflops": 8.1,
+        "sm": 40,
+        "device": "Tesla T4",
+        "vgpuStatus": "THROTTLED"
+    })
+
+    rev_res = client.post("/reveal", json={
+        "deliveryId": delivery_id,
+        "rows": [{"index": i, "data": "0x" + C[i].tobytes().hex()} for i in sessions[delivery_id]["sampleIndices"]],
+        "proofs": [tree.get_proof(i) for i in sessions[delivery_id]["sampleIndices"]],
+    })
+
+    assert rev_res.status_code == 200
+    data = rev_res.json()
+    assert data["verdict"] == 2  # DEGRADED
+    assert data["verdictName"] == "DEGRADED"
+    assert data["vgpuStatus"] == "THROTTLED"
+
+
+def test_websocket_stream_endpoint():
+    client = TestClient(app)
+    delivery_id = 203
+
+    # Challenge
+    client.post("/challenge", json={"deliveryId": delivery_id, "gpuClass": "T4", "n": 64})
+
+    with client.websocket_connect(f"/ws/verify/{delivery_id}") as websocket:
+        initial = websocket.receive_json()
+        assert initial["event"] == "connected"
+        assert initial["deliveryId"] == delivery_id
+
+        # Send ping
+        websocket.send_json({"type": "ping"})
+        resp = websocket.receive_json()
+        assert resp["type"] == "pong"
+
