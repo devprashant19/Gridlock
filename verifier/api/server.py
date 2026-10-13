@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 import secrets
 import time
 from typing import Any, Dict, List, Optional
@@ -14,7 +15,13 @@ try:
 except ImportError:
     HAS_ETH_ACCOUNT = False
 
-from verifier.common.challenge import gen, hash_row, MerkleTree
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+try:
+    from verifier.common.challenge import gen, hash_row, MerkleTree
+except ImportError:
+    from common.challenge import gen, hash_row, MerkleTree
 
 app = FastAPI(title="Gridlock Verifier API", version="0.1.0")
 
@@ -43,6 +50,8 @@ CHAIN_ID = int(os.getenv("CHAIN_ID", "10143"))
 class ChallengeRequest(BaseModel):
     deliveryId: int
     gpuClass: str
+    n: Optional[int] = 4096
+    steps: Optional[int] = 4
 
 
 class CommitRequest(BaseModel):
@@ -75,8 +84,8 @@ def create_challenge(req: ChallengeRequest):
         raise HTTPException(status_code=400, detail=f"Unknown GPU class: {req.gpuClass}")
 
     seed = secrets.randbits(64)
-    n = 4096
-    steps = 4
+    n = req.n or 4096
+    steps = req.steps or 4
     # Generous deadline slack (30s)
     deadline_ms = 30000
 

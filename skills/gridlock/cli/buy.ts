@@ -1,6 +1,9 @@
 import * as path from "path";
 import * as fs from "fs";
-import { encodeFunctionData } from "viem";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // gridlock buy --series gH100-W43 --hours 4 --max-price 2.90
 async function main() {

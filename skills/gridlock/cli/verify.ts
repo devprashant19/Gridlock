@@ -1,5 +1,9 @@
 import { spawn } from "child_process";
 import * as path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // gridlock verify --delivery <id> --class "H100 SXM"
 async function main() {
