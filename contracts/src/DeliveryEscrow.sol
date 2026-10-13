@@ -211,6 +211,7 @@ contract DeliveryEscrow {
         require(msg.sender == d.provider, "Only assigned provider");
         require(d.status == Status.Requested, "Invalid status");
         require(block.timestamp <= d.deadline, "Provisioning deadline passed");
+        require(ciphertext.length > 0, "Empty ciphertext");
 
         d.status = Status.Provisioned;
         d.provisionedAt = uint64(block.timestamp);
