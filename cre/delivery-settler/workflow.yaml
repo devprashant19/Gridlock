@@ -1,0 +1,13 @@
+name: delivery-settler
+version: 0.1.0
+entrypoint: workflow.ts
+description: "Triggered on DeliveryEscrow.Provisioned event, polls verifier verdict, reaches DON consensus, and writes settlement to DeliveryEscrow.onReport"
+triggers:
+  - type: evm-event
+    chain-selector: "2183018362218727504"
+    address: "0x4444444444444444444444444444444444444444"
+    event: "Provisioned(uint256,bytes)"
+targets:
+  monad-testnet:
+    chain-selector: "2183018362218727504"
+    rpc-url: "https://testnet-rpc.monad.xyz"
