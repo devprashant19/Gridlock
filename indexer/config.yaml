@@ -1,14 +1,10 @@
 # yaml-language-server: $schema=./node_modules/envio/evm.schema.json
 # Addresses + start_block are rewritten from ../deployments/testnet.json by `pnpm sync`.
 name: gridlock-indexer
-description: Real-time indexer for Gridlock GPU-hour forwards on Monad
-unordered_multichain_mode: true
-field_selection:
-  transaction_fields:
-    - hash
-networks:
-  - id: 10143 # Monad testnet (HyperSync: https://monad-testnet.hypersync.xyz)
-    start_block: 1234567
+description: Real-time indexer for Gridlock GPU-hour forwards on Monad Testnet
+chains:
+  - id: 10143
+    start_block: 0
     contracts:
       - name: DeliveryEscrow
         address: "0x4444444444444444444444444444444444444444"

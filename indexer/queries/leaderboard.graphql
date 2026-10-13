@@ -1,0 +1,19 @@
+# Provider Leaderboard Query
+# Orders by fails ascending (fewer failures first), then passes descending (most reliable passes first)
+query GetProviderLeaderboard($limit: Int = 50, $offset: Int = 0) {
+  Provider(
+    order_by: { fails: asc, passes: desc }
+    limit: $limit
+    offset: $offset
+  ) {
+    id
+    name
+    passes
+    degraded
+    fails
+    timeouts
+    hoursDelivered
+    slashedTotal
+    minted
+  }
+}

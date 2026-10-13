@@ -1,0 +1,25 @@
+# Query all GPU series with metadata and open capacity
+query GetAllSeries {
+  Series(order_by: { id: asc }) {
+    id
+    symbol
+    gpuClass
+    token
+    market
+    lastPrice
+    openHours
+  }
+}
+
+# Query a single series by primary key (ID)
+query GetSeriesById($id: ID!) {
+  Series_by_pk(id: $id) {
+    id
+    symbol
+    gpuClass
+    token
+    market
+    lastPrice
+    openHours
+  }
+}
