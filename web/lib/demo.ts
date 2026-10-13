@@ -31,8 +31,8 @@ export const demoBook = (symbol: string) => {
 };
 
 export const demoDeliveries = (): DeliveryView[] => [
-  { id: 0, seriesId: SERIES[0]?.seriesId ?? 1, buyer: B1, provider: P1, hours: 1n, buyerEncPubKey: Z32, deadline: now() + 5400, provisionedAt: now() - 600, bondAmount: 420_000n, status: 2, ciphertext: "0x", verdict: 0, tflopsE2: 0, resultRoot: Z32 },
-  { id: 1, seriesId: SERIES[0]?.seriesId ?? 1, buyer: B1, provider: P2, hours: 2n, buyerEncPubKey: Z32, deadline: now() - 100, provisionedAt: now() - 7200, bondAmount: 840_000n, status: 3, ciphertext: "0x", verdict: 3, tflopsE2: 212, resultRoot: Z32 },
+  { id: 0, seriesId: SERIES[0]?.seriesId ?? 1, buyer: B1, provider: P1, hours: 1n, buyerEncPubKey: Z32, deadline: now() + 5400, provisionedAt: now() - 600, bondAmount: 420_000n, status: 2, ciphertext: "0x4a9b21f83c7e0981d390a78b5c42e18d9f00128ac78b6540e1d89b128540c98f7e21a8c9b3d0e5124b8932ef10a7204891b2c4e6a8d01934", verdict: 0, tflopsE2: 0, resultRoot: Z32 },
+  { id: 1, seriesId: SERIES[0]?.seriesId ?? 1, buyer: B1, provider: P2, hours: 2n, buyerEncPubKey: Z32, deadline: now() - 100, provisionedAt: now() - 7200, bondAmount: 840_000n, status: 3, ciphertext: "0x4a9b21f83c7e0981d390a78b5c42e18d9f00128ac78b6540e1d89b128540c98f7e21a8c9b3d0e5124b8932ef10a7204891b2c4e6a8d01934", verdict: 3, tflopsE2: 212, resultRoot: Z32 },
 ];
 
 export const demoLeaderboard = (): LeaderRow[] => [
