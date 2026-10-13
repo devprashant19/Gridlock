@@ -1,0 +1,21 @@
+{
+  "name": "@gridlock/agent-skill",
+  "version": "0.1.0",
+  "description": "MetaMask Agent Wallet skill for Gridlock GPU forwards",
+  "main": "cli/quote.ts",
+  "scripts": {
+    "quote": "ts-node cli/quote.ts",
+    "buy": "ts-node cli/buy.ts",
+    "redeem": "ts-node cli/redeem.ts",
+    "verify": "ts-node cli/verify.ts"
+  },
+  "dependencies": {
+    "ethers": "^5.7.2",
+    "viem": "^2.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.0"
+  }
+}

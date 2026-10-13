@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="monadGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#836EF9" />
+      <stop offset="100%" stop-color="#5B3BE8" />
+    </linearGradient>
+    <linearGradient id="neonGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00FFA3" />
+      <stop offset="100%" stop-color="#00B8FF" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background Dark Rounded Square -->
+  <rect width="512" height="512" rx="100" fill="#0B0E14" />
+  
+  <!-- Subtle Grid Pattern in background -->
+  <path d="M 128 64 L 128 448 M 256 64 L 256 448 M 384 64 L 384 448 M 64 128 L 448 128 M 64 256 L 448 256 M 64 384 L 448 384" 
+        stroke="#1E2436" stroke-width="4" stroke-linecap="round" />
+
+  <!-- Outer Lock Shackle (Compute Grid Flow) -->
+  <path d="M 176 220 L 176 160 A 80 80 0 0 1 336 160 L 336 220" 
+        fill="none" stroke="url(#monadGrad)" stroke-width="32" stroke-linecap="round" />
+
+  <!-- Lock Body (Processor Chip / Die) -->
+  <rect x="136" y="210" width="240" height="210" rx="36" fill="#141824" stroke="url(#monadGrad)" stroke-width="12" />
+
+  <!-- Chip Core Pins -->
+  <line x1="100" y1="260" x2="136" y2="260" stroke="#836EF9" stroke-width="10" stroke-linecap="round" />
+  <line x1="100" y1="315" x2="136" y2="315" stroke="#836EF9" stroke-width="10" stroke-linecap="round" />
+  <line x1="100" y1="370" x2="136" y2="370" stroke="#836EF9" stroke-width="10" stroke-linecap="round" />
+
+  <line x1="376" y1="260" x2="412" y2="260" stroke="#836EF9" stroke-width="10" stroke-linecap="round" />
+  <line x1="376" y1="315" x2="412" y2="315" stroke="#836EF9" stroke-width="10" stroke-linecap="round" />
+  <line x1="376" y1="370" x2="412" y2="370" stroke="#836EF9" stroke-width="10" stroke-linecap="round" />
+
+  <!-- Keyhole / Proof Core -->
+  <circle cx="256" cy="295" r="24" fill="url(#neonGlow)" />
+  <polygon points="248,305 264,305 268,360 244,360" fill="url(#neonGlow)" />
+</svg>
