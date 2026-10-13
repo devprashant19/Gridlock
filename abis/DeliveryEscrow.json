@@ -1,0 +1,142 @@
+[
+  {
+    "type": "function",
+    "name": "registerProvider",
+    "inputs": [{ "name": "name", "type": "string" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "mint",
+    "inputs": [
+      { "name": "seriesId", "type": "uint256" },
+      { "name": "hours_", "type": "uint256" }
+    ],
+    "outputs": [{ "name": "bondAmount", "type": "uint256" }],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "redeem",
+    "inputs": [
+      { "name": "seriesId", "type": "uint256" },
+      { "name": "hours_", "type": "uint256" },
+      { "name": "buyerEncPubKey", "type": "bytes32" }
+    ],
+    "outputs": [{ "name": "deliveryId", "type": "uint256" }],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "provision",
+    "inputs": [
+      { "name": "deliveryId", "type": "uint256" },
+      { "name": "ciphertext", "type": "bytes" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "settleWithSig",
+    "inputs": [
+      { "name": "deliveryId", "type": "uint256" },
+      { "name": "verdict", "type": "uint8" },
+      { "name": "tflopsE2", "type": "uint32" },
+      { "name": "resultRoot", "type": "bytes32" },
+      { "name": "signature", "type": "bytes" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "onReport",
+    "inputs": [{ "name": "report", "type": "bytes" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "claimTimeout",
+    "inputs": [{ "name": "deliveryId", "type": "uint256" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "withdrawUnsold",
+    "inputs": [
+      { "name": "seriesId", "type": "uint256" },
+      { "name": "hours_", "type": "uint256" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "ProviderRegistered",
+    "inputs": [
+      { "name": "provider", "type": "address", "indexed": true },
+      { "name": "name", "type": "string", "indexed": false }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Minted",
+    "inputs": [
+      { "name": "seriesId", "type": "uint256", "indexed": true },
+      { "name": "provider", "type": "address", "indexed": true },
+      { "name": "hours_", "type": "uint256", "indexed": false },
+      { "name": "bond", "type": "uint256", "indexed": false }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DeliveryRequested",
+    "inputs": [
+      { "name": "deliveryId", "type": "uint256", "indexed": true },
+      { "name": "seriesId", "type": "uint256", "indexed": true },
+      { "name": "buyer", "type": "address", "indexed": true },
+      { "name": "provider", "type": "address", "indexed": false },
+      { "name": "hours_", "type": "uint256", "indexed": false },
+      { "name": "buyerEncPubKey", "type": "bytes32", "indexed": false },
+      { "name": "deadline", "type": "uint64", "indexed": false }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Provisioned",
+    "inputs": [
+      { "name": "deliveryId", "type": "uint256", "indexed": true },
+      { "name": "ciphertext", "type": "bytes", "indexed": false }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Settled",
+    "inputs": [
+      { "name": "deliveryId", "type": "uint256", "indexed": true },
+      { "name": "verdict", "type": "uint8", "indexed": false },
+      { "name": "tflopsE2", "type": "uint32", "indexed": false },
+      { "name": "toBuyer", "type": "uint256", "indexed": false },
+      { "name": "toProvider", "type": "uint256", "indexed": false }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "TimeoutClaimed",
+    "inputs": [
+      { "name": "deliveryId", "type": "uint256", "indexed": true },
+      { "name": "toBuyer", "type": "uint256", "indexed": false },
+      { "name": "toProvider", "type": "uint256", "indexed": false }
+    ],
+    "anonymous": false
+  }
+]

@@ -1,0 +1,71 @@
+[
+  {
+    "type": "function",
+    "name": "owner",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "forwarder",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "setForwarder",
+    "inputs": [{ "name": "_forwarder", "type": "address" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setFixedPrice",
+    "inputs": [
+      { "name": "className", "type": "string" },
+      { "name": "priceE8", "type": "uint128" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "pushPrint",
+    "inputs": [
+      { "name": "gpuClass", "type": "bytes32" },
+      { "name": "dayKey", "type": "uint64" },
+      { "name": "priceE8", "type": "uint128" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "onReport",
+    "inputs": [{ "name": "report", "type": "bytes" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "latest",
+    "inputs": [{ "name": "gpuClass", "type": "bytes32" }],
+    "outputs": [
+      { "name": "priceE8", "type": "uint128" },
+      { "name": "dayKey", "type": "uint64" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "PrintPublished",
+    "inputs": [
+      { "name": "gpuClass", "type": "bytes32", "indexed": true },
+      { "name": "dayKey", "type": "uint64", "indexed": true },
+      { "name": "priceE8", "type": "uint128", "indexed": false }
+    ],
+    "anonymous": false
+  }
+]
