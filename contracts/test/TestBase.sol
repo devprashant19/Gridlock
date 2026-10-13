@@ -19,6 +19,9 @@ abstract contract GridlockTestBase is Test {
     uint256 public constant VERIFIER_PK = 0xABCD1234;
     address public verifierSigner;
 
+    // Standard starting timestamp (realistic Unix epoch)
+    uint256 public constant START_TIME = 1_728_864_000;
+
     // Contracts
     GridUSD public gridUSD;
     IndexOracle public oracle;
@@ -31,6 +34,7 @@ abstract contract GridlockTestBase is Test {
     bytes32 public constant H200_CLASS = keccak256("H200");
 
     function setUp() public virtual {
+        vm.warp(START_TIME);
         verifierSigner = vm.addr(VERIFIER_PK);
 
         vm.startPrank(OWNER);
