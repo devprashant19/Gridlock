@@ -11,7 +11,8 @@ import "../src/DeliveryEscrow.sol";
 contract DeployScript is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PK");
-        address verifierSigner = vm.envOr("VERIFIER_SIGNER_ADDRESS", address(0x5555555555555555555555555555555555555555));
+        address verifierSigner = vm.envAddress("VERIFIER_SIGNER_ADDRESS");
+        require(verifierSigner != address(0), "VERIFIER_SIGNER_ADDRESS must be set and non-zero");
 
         vm.startBroadcast(deployerPrivateKey);
 

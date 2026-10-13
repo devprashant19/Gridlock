@@ -86,6 +86,10 @@ contract DeliveryEscrow {
     }
 
     constructor(address _gridUSD, address _oracle, address _verifierSigner) {
+        require(_gridUSD != address(0), "Invalid GridUSD address");
+        require(_oracle != address(0), "Invalid oracle address");
+        require(_verifierSigner != address(0), "Invalid verifier signer address");
+
         gridUSD = GridUSD(_gridUSD);
         oracle = IndexOracle(_oracle);
         verifierSigner = _verifierSigner;
@@ -101,10 +105,12 @@ contract DeliveryEscrow {
     }
 
     function setFactory(address _factory) external onlyOwner {
+        require(_factory != address(0), "Invalid factory address");
         factory = SeriesFactory(_factory);
     }
 
     function setVerifierSigner(address _signer) external onlyOwner {
+        require(_signer != address(0), "Invalid verifier signer address");
         verifierSigner = _signer;
         emit VerifierSignerUpdated(_signer);
     }
