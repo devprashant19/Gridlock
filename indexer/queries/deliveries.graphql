@@ -1,0 +1,61 @@
+# Query delivery details by ID
+query GetDeliveryById($id: ID!) {
+  Delivery_by_pk(id: $id) {
+    id
+    series {
+      id
+      symbol
+      gpuClass
+    }
+    buyer
+    provider {
+      id
+      name
+    }
+    hours
+    status
+    verdict
+    tflopsE2
+    toBuyer
+    toProvider
+  }
+}
+
+# Query deliveries filtered by buyer
+query GetDeliveriesByBuyer($buyer: String!, $limit: Int = 20, $offset: Int = 0) {
+  Delivery(
+    where: { buyer: { _eq: $buyer } }
+    order_by: { id: desc }
+    limit: $limit
+    offset: $offset
+  ) {
+    id
+    series {
+      id
+      symbol
+    }
+    hours
+    status
+    verdict
+    toBuyer
+    toProvider
+  }
+}
+
+# Query deliveries filtered by provider
+query GetDeliveriesByProvider($providerId: String!, $limit: Int = 20, $offset: Int = 0) {
+  Delivery(
+    where: { provider_id: { _eq: $providerId } }
+    order_by: { id: desc }
+    limit: $limit
+    offset: $offset
+  ) {
+    id
+    buyer
+    hours
+    status
+    verdict
+    toBuyer
+    toProvider
+  }
+}
