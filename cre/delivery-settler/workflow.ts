@@ -5,6 +5,11 @@ import {
 } from "../common/encoding.ts";
 import { verifyUnanimousVerdict } from "../common/consensus.ts";
 import { Logger } from "../common/logger.ts";
+import { fetchVerifierVerdictWithRetry } from "./poller.ts";
+import {
+  verifyEip712VerdictSignature,
+  DEFAULT_VERIFIER_SIGNER_ADDRESS,
+} from "./crypto.ts";
 import { VerdictStatus, type VerifierVerdict, type SettlementReport } from "../common/types.ts";
 
 const logger = new Logger("delivery-settler");
@@ -16,6 +21,10 @@ export interface SettlerConfig {
   maxRetries?: number;
   retryIntervalMs?: number;
   donNodes?: number;
+  expectedSignerAddress?: string;
+  verifyingContract?: string;
+  chainId?: number;
+  skipSigVerification?: boolean;
 }
 
 export const DEFAULT_VERIFIER_URL = "http://localhost:8000";
@@ -57,7 +66,7 @@ export function parseProvisionedLog(log: {
 }
 
 /**
- * Polls Verifier API with retries until verdict is reached or timeout
+ * Polls Verifier API with retries and validates payload integrity
  */
 export async function pollVerifierVerdict(
   deliveryId: bigint | number,
@@ -66,75 +75,40 @@ export async function pollVerifierVerdict(
   intervalMs: number = 500,
   fetchFn: typeof fetch = fetch
 ): Promise<VerifierVerdict> {
-  const url = `${baseUrl}/verdict/${deliveryId}`;
-  logger.info(`Polling verifier verdict for delivery #${deliveryId}`, { url });
+  const body = await fetchVerifierVerdictWithRetry(
+    deliveryId,
+    {
+      baseUrl,
+      maxAttempts: maxRetries,
+      initialIntervalMs: intervalMs,
+    },
+    fetchFn
+  );
 
-  let lastError: Error | null = null;
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      const res = await fetchFn(url, { headers: { Accept: "application/json" } });
-
-      if (res.status === 404 || res.status === 202) {
-        logger.info(`Verification pending on verifier (attempt ${attempt}/${maxRetries})`);
-        if (attempt < maxRetries) {
-          await new Promise((r) => setTimeout(r, intervalMs));
-          continue;
-        }
-      }
-
-      if (!res.ok) {
-        throw new Error(`Verifier returned HTTP ${res.status}: ${res.statusText}`);
-      }
-
-      const body = (await res.json()) as any;
-      if (!body || typeof body !== "object") {
-        throw new Error("Malformed JSON response from Verifier API");
-      }
-
-      const verdictVal = Number(body.verdict);
-      if (![1, 2, 3].includes(verdictVal)) {
-        throw new Error(`Invalid verdict value: ${body.verdict} (must be 1: PASS, 2: DEGRADED, 3: FAIL)`);
-      }
-
-      const tflopsE2 = Number(body.tflopsE2);
-      if (isNaN(tflopsE2) || tflopsE2 < 0) {
-        throw new Error(`Invalid tflopsE2: ${body.tflopsE2}`);
-      }
-
-      const resultRoot = String(body.resultRoot || "");
-      if (!ethers.isHexString(resultRoot, 32)) {
-        throw new Error(`Invalid resultRoot: expected 32-byte hex string, got ${resultRoot}`);
-      }
-
-      logger.info(`Verdict received for delivery #${deliveryId}: ${body.verdictName || verdictVal}`, {
-        deliveryId: Number(deliveryId),
-        verdict: verdictVal,
-        tflopsE2,
-        resultRoot,
-      });
-
-      return {
-        deliveryId: Number(deliveryId),
-        verdict: verdictVal as VerdictStatus,
-        verdictName: body.verdictName || (verdictVal === 1 ? "PASS" : verdictVal === 2 ? "DEGRADED" : "FAIL"),
-        tflopsE2,
-        resultRoot,
-        signature: body.signature,
-        timestamp: body.timestamp,
-      };
-    } catch (err: any) {
-      lastError = err;
-      logger.warn(`Polling attempt ${attempt}/${maxRetries} failed: ${err.message}`);
-      if (attempt < maxRetries) {
-        await new Promise((r) => setTimeout(r, intervalMs));
-      }
-    }
+  const verdictVal = Number(body.verdict);
+  if (![1, 2, 3].includes(verdictVal)) {
+    throw new Error(`Invalid verdict value: ${body.verdict} (must be 1: PASS, 2: DEGRADED, 3: FAIL)`);
   }
 
-  throw new Error(
-    `Polling verifier for delivery #${deliveryId} timed out after ${maxRetries} attempts. Last error: ${lastError?.message}`
-  );
+  const tflopsE2 = Number(body.tflopsE2);
+  if (isNaN(tflopsE2) || tflopsE2 < 0) {
+    throw new Error(`Invalid tflopsE2: ${body.tflopsE2}`);
+  }
+
+  const resultRoot = String(body.resultRoot || "");
+  if (!ethers.isHexString(resultRoot, 32)) {
+    throw new Error(`Invalid resultRoot: expected 32-byte hex string, got ${resultRoot}`);
+  }
+
+  return {
+    deliveryId: Number(deliveryId),
+    verdict: verdictVal as VerdictStatus,
+    verdictName: body.verdictName || (verdictVal === 1 ? "PASS" : verdictVal === 2 ? "DEGRADED" : "FAIL"),
+    tflopsE2,
+    resultRoot,
+    signature: body.signature,
+    timestamp: body.timestamp,
+  };
 }
 
 /**
@@ -148,6 +122,9 @@ export async function handleDeliverySettler(
   const { deliveryId } = parseProvisionedLog(event);
   const verifierUrl = config.verifierBaseUrl || DEFAULT_VERIFIER_URL;
   const donNodes = config.donNodes || 3;
+  const verifyingContract = config.verifyingContract || "0x4444444444444444444444444444444444444444";
+  const expectedSigner = config.expectedSignerAddress || DEFAULT_VERIFIER_SIGNER_ADDRESS;
+  const chainId = config.chainId || 10143;
 
   logger.info(`Starting settlement workflow for delivery #${deliveryId}`, {
     deliveryId: deliveryId.toString(),
@@ -161,10 +138,25 @@ export async function handleDeliverySettler(
     const verdict = await pollVerifierVerdict(
       deliveryId,
       verifierUrl,
-      config.maxRetries || 5,
+      config.maxRetries || 6,
       config.retryIntervalMs || 200,
       fetchFn
     );
+
+    // Cryptographic EIP-712 signature verification on the node
+    if (!config.skipSigVerification && verdict.signature) {
+      verifyEip712VerdictSignature(
+        deliveryId,
+        verdict.verdict,
+        verdict.tflopsE2,
+        verdict.resultRoot,
+        verdict.signature,
+        verifyingContract,
+        expectedSigner,
+        chainId
+      );
+    }
+
     nodeObservations.push(verdict);
   }
 
