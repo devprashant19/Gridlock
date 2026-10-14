@@ -1,8 +1,12 @@
+// Fixed locale/time zone: server (Vercel, en-US/UTC) and browser must render identical
+// text or React throws a hydration mismatch (#418) for non-en-US visitors.
+const LOCALE = "en-US";
+
 export const fmtUsd = (v: number, digits = 2) =>
-  `$${v.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
+  `$${v.toLocaleString(LOCALE, { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
 
 export const fmtNum = (v: number, digits = 2) =>
-  v.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  v.toLocaleString(LOCALE, { minimumFractionDigits: digits, maximumFractionDigits: digits });
 
 export const gusd = (raw: bigint | undefined | null) => (raw == null ? 0 : Number(raw) / 1e6);
 export const hoursFromWei = (raw: bigint | undefined | null) => (raw == null ? 0 : Number(raw) / 1e18);
@@ -23,7 +27,7 @@ export function fmtDuration(ms: number) {
 }
 
 export const fmtDate = (unix: number) =>
-  new Date(unix * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  new Date(unix * 1000).toLocaleDateString(LOCALE, { month: "short", day: "numeric", timeZone: "UTC" });
 
 /** Bond in gUSD for `hours` at `priceE8`, as DeliveryEscrow.mint computes it (6dp). */
 export const bondRaw = (hours: bigint, priceE8: bigint) => (hours * priceE8 * 120n) / 10000n;

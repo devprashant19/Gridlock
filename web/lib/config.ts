@@ -87,5 +87,21 @@ export const SESSION_ALLOWLIST: Address[] = [
   ...SERIES.flatMap((s) => (s.kuruMarket ? [s.kuruMarket] : [])),
 ];
 
+/**
+ * False for a loopback API (localhost / 127.x) when the page itself is served from a
+ * public host: the browser can never reach it, it only produces console errors.
+ */
+export function isReachableApi(url: string) {
+  if (!url) return false;
+  try {
+    const target = new URL(url).hostname;
+    const loopback = (h: string) => h === "localhost" || h === "::1" || h.startsWith("127.");
+    if (!loopback(target)) return true;
+    return typeof window === "undefined" ? false : loopback(window.location.hostname);
+  } catch {
+    return false;
+  }
+}
+
 export const txUrl = (hash: string) => `${EXPLORER}/tx/${hash}`;
 export const addressUrl = (a: string) => `${EXPLORER}/address/${a}`;

@@ -1,13 +1,13 @@
 // Envio GraphQL (indexer/ in this repo). Returns null when the endpoint isn't set or
 // fails, so callers fall back to direct contract reads.
-import { ENVIO_GRAPHQL } from "./config";
+import { ENVIO_GRAPHQL, isReachableApi } from "./config";
 
 export const ENVIO_GRAPHQL_ENDPOINT =
   ENVIO_GRAPHQL || process.env.NEXT_PUBLIC_ENVIO_GRAPHQL || "http://localhost:8080/v1/graphql";
 
 async function gql<T>(query: string, variables?: Record<string, unknown>): Promise<T | null> {
   const endpoint = ENVIO_GRAPHQL || ENVIO_GRAPHQL_ENDPOINT;
-  if (!endpoint) return null;
+  if (!isReachableApi(endpoint)) return null;
   try {
     const r = await fetch(endpoint, {
       method: "POST",

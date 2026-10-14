@@ -1,5 +1,5 @@
 import type { Hex } from "viem";
-import { VERIFIER_API } from "./config";
+import { IS_MOCK, VERIFIER_API, isReachableApi } from "./config";
 
 export type VerdictResponse = {
   deliveryId: number;
@@ -13,6 +13,7 @@ export type VerdictResponse = {
 
 /** GET /verdict/{id} (INTERFACES §3.4). null = no verdict yet / verifier unreachable. */
 export async function fetchVerdict(deliveryId: string | number): Promise<VerdictResponse | null> {
+  if (IS_MOCK || !isReachableApi(VERIFIER_API)) return null;
   try {
     const r = await fetch(`${VERIFIER_API}/verdict/${deliveryId}`, { cache: "no-store" });
     if (!r.ok) return null;
