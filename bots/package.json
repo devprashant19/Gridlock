@@ -5,12 +5,13 @@
   "main": "deploy-markets.ts",
   "scripts": {
     "deploy-markets": "ts-node deploy-markets.ts",
-    "seed-ladder": "ts-node seed-ladder.ts"
+    "seed-ladder": "ts-node seed-ladder.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@kuru-labs/kuru-sdk": "^0.1.0",
+    "@kuru-labs/kuru-sdk": "0.0.95",
     "dotenv": "^16.4.5",
-    "ethers": "^5.7.2"
+    "ethers": "5.7.1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
